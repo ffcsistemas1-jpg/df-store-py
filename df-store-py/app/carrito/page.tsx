@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function Cart(){return <section><small>COMPRA</small><h1>Carrito</h1><div className="empty"><h2>Tu carrito está vacío</h2><p>El carrito queda preparado para conectarse al pedido real.</p><Link className="btn" href="/catalogo">Ir al catálogo</Link></div></section>}

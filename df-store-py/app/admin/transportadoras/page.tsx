@@ -1,0 +1,1 @@
+export default function Transportadoras(){return <section><small>LOGÍSTICA</small><h1>Transportadoras</h1><div className="grid">{["Multienvíos","TSI","NASA","Yaraha PY","Aguirre","TTL"].map(x=><div className="panel" key={x}><h3>{x}</h3><p>Activa para envíos al interior.</p></div>)}</div><button className="btn">+ Agregar transportadora</button></section>}
