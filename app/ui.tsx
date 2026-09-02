@@ -155,11 +155,20 @@ export function TopBanner(){
 export function ProductCard({p}:{p:any}) {
  const {add}=useCart(); const [added,setAdded]=useState(false); const stock=Number(p.stock)||0;
  const handleAdd=()=>{add(p);setAdded(true);window.setTimeout(()=>setAdded(false),1400)};
- return <article className="card"><Link href={"/catalogo/"+p.id} className="pic">{p.image_url?<img src={p.image_url} alt={p.name}/>:<b>DF</b>}</Link><small>{p.category||"Producto"}</small><h3>{p.name}</h3><strong>₲ {Number(p.price).toLocaleString("es-PY")}</strong><button className="btn" disabled={stock<=0} onClick={handleAdd}>{stock<=0?"Sin stock":added?"✓ Agregado al carrito":"Agregar al carrito"}</button></article>;
+ return <article className="card"><Link href={"/catalogo/"+p.id} className="pic">{p.image_url?<img src={p.image_url} alt={p.name}/>:<b>DF</b>}</Link><small>{p.category||"Producto"}</small><h3>{p.name}</h3><strong>₲ {Number(p.price).toLocaleString("es-PY")}</strong><div className="cart-actions"><button type="button" className="btn" disabled={stock<=0} onClick={handleAdd}>{stock<=0?"Sin stock":added?"✓ Agregado al carrito":"Agregar al carrito"}</button><BuyNowButton p={p}/></div></article>;
 }
 
 export function AddToCartButton({p}:{p:any}){
  const {add}=useCart(); const [added,setAdded]=useState(false); const stock=Number(p.stock)||0;
  const handleAdd=()=>{add(p);setAdded(true);window.setTimeout(()=>setAdded(false),1400)};
- return <button className="btn" disabled={stock<=0} onClick={handleAdd}>{stock<=0?"Sin stock":added?"✓ Agregado al carrito":"Agregar al carrito"}</button>;
+ return <div className="cart-actions">
+   <button type="button" className="btn" disabled={stock<=0} onClick={handleAdd}>{stock<=0?"Sin stock":added?"✓ Agregado al carrito":"Agregar al carrito"}</button>
+   <BuyNowButton p={p}/>
+ </div>;
+}
+
+export function BuyNowButton({p}:{p:any}){
+ const {add}=useCart(); const router=useRouter(); const stock=Number(p.stock)||0;
+ const handleBuy=()=>{ if(stock<=0) return; add(p); router.push("/carrito"); };
+ return <button type="button" className="btn secondary" disabled={stock<=0} onClick={handleBuy}>{stock<=0?"Sin stock":"Comprar"}</button>;
 }

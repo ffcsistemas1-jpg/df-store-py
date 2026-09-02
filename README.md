@@ -1,3 +1,8 @@
-# DF Store PY — Carrito corregido v4
+# DF Store PY
 
-Corrección del carrito: la verificación de stock ya no vacía el carrito cuando Supabase devuelve una consulta incompleta o un error de permisos, y el carrito se guarda inmediatamente en el navegador al agregar un producto.
+Tienda online DF Store PY.
+
+## Flujo de compra
+- **Agregar al carrito:** guarda el producto y permite seguir navegando por la tienda.
+- **Comprar:** agrega el producto y lleva inmediatamente al carrito.
+- El carrito conserva los productos en el navegador para que no se pierdan durante la navegación.
