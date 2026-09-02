@@ -15,10 +15,10 @@ export default function Cart(){
      try{
        const ids=items.map(i=>i.id).filter(id=>!id.startsWith("demo-"));
        if(ids.length){
-         const {data}=await createClient().from("products").select("id,stock,active").in("id",ids);
-         if(!cancelled){
+         const {data,error}=await createClient().from("products").select("id,stock,active").in("id",ids);
+         if(!cancelled && !error && Array.isArray(data) && data.length === ids.length){
            const stocks:Record<string,number>={};
-           for(const row of data||[]) if(row.active) stocks[row.id]=Number(row.stock)||0;
+           for(const row of data) if(row.active) stocks[row.id]=Number(row.stock)||0;
            syncStock(stocks);
          }
        }

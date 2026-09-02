@@ -58,14 +58,7 @@ export function CartProvider({children}:{children:React.ReactNode}) {
        }
      }catch{}
 
-     // Supabase sync is optional; when available it becomes the persistent server copy.
-     try{
-       const s=createClient();
-       const {data,error}=await s.from("cart_items").select("product_id,name,price,image_url,stock,quantity").eq("session",session);
-       if(!cancelled && !error && Array.isArray(data) && data.length){
-         setItems(data.map(normalizeItem).filter(Boolean) as CartItem[]);
-       }
-     } catch {}
+     // Do not let a stale/empty server cart overwrite the browser cart.
      if(!cancelled) setReady(true);
    })();
    return ()=>{cancelled=true};
@@ -105,12 +98,11 @@ export function CartProvider({children}:{children:React.ReactNode}) {
    const qty=Math.max(1,Math.floor(Number(quantity)||1));
    setItems(prev=>{
      const found=prev.find(x=>x.id===String(p.id));
-     if(found){
-       const updated={...found,stock,price:Number(p.price)||found.price,name:p.name||found.name,image_url:p.image_url||found.image_url,quantity:Math.min(found.quantity+qty,stock)};
-       return prev.map(x=>x.id===String(p.id)?updated:x);
-     }
-     const created={id:String(p.id),name:p.name,price:Number(p.price)||0,image_url:p.image_url||null,stock,quantity:Math.min(qty,stock)};
-     return [...prev,created];
+     const next=found
+       ? prev.map(x=>x.id===String(p.id)?{...x,stock,price:Number(p.price)||x.price,name:p.name||x.name,image_url:p.image_url||x.image_url,quantity:Math.min(x.quantity+qty,stock)}:x)
+       : [...prev,{id:String(p.id),name:p.name,price:Number(p.price)||0,image_url:p.image_url||null,stock,quantity:Math.min(qty,stock)}];
+     try{ window.localStorage.setItem(CART_LOCAL_KEY, JSON.stringify(next)); }catch{}
+     return next;
    });
  };
  const remove=(id:string)=>{setItems(prev=>prev.filter(x=>x.id!==id)); removeRemote(id);};
