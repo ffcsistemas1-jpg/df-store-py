@@ -5,6 +5,7 @@
 // por eso el campo Barrio para envíos al interior queda como texto libre.
 
 export const PARAGUAY_DEPARTAMENTOS: { name: string; distritos: string[] }[] = [
+  { name: "Asunción", distritos: ["Asunción"] },
   { name: "Concepción", distritos: ["Concepción","Belén","Horqueta","Loreto","San Carlos","San Lázaro","Yvy Ya'ú","Azotey","Sgto. José Félix López","San Alfredo","Paso Barreto"] },
   { name: "San Pedro", distritos: ["San Pedro del Ykuamandiyú","Antequera","Choré","General Elizardo Aquino","Itacurubí del Rosario","Lima","Nueva Germania","San Estanislao","San Pablo","Tacuatí","Unión","25 de Diciembre","Villa del Rosario","General Resquín","Yataity del Norte","Guajayvi","Capiibary","Santa Rosa del Aguaray","Yryvu Cuá","Liberación"] },
   { name: "Cordillera", distritos: ["Caacupé","Altos","Arroyos y Esteros","Atyrá","Caraguatay","Emboscada","Eusebio Ayala","Isla Pucú","Itacurubí de la Cordillera","Juan de Mena","Loma Grande","Mbocayaty del Yhaguy","Nueva Colombia","Piribebuy","Primero de Marzo","San Bernardino","Santa Elena","Tobatí","Valenzuela","San José Obrero"] },
