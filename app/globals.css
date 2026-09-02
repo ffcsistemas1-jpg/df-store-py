@@ -47,3 +47,5 @@
 .cart-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .cart-actions .btn{width:100%;margin-top:0}
 @media(max-width:560px){.cart-actions{grid-template-columns:1fr}}
+
+.location-btn.secondary{background:#fff;color:#98234d;border:1px solid #98234d}
