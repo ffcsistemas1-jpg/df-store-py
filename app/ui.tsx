@@ -31,10 +31,12 @@ type CartContextType = {
 const CartContext = createContext<CartContextType>({items:[],add:()=>{},remove:()=>{},update:()=>{},clear:()=>{},syncStock:()=>{},count:0,subtotal:0,ready:false});
 
 function normalizeItem(row:any):CartItem|null {
-  if(!row?.product_id || !row?.name) return null;
+  // Accept both Supabase rows (product_id) and localStorage items (id).
+  const id=row?.product_id || row?.id;
+  if(!id || !row?.name) return null;
   const stock=Math.max(0, Number(row.stock)||0);
   const quantity=Math.max(1, Math.min(Number(row.quantity)||1, stock||1));
-  return {id:String(row.product_id),name:String(row.name),price:Number(row.price)||0,image_url:row.image_url||null,stock,quantity};
+  return {id:String(id),name:String(row.name),price:Number(row.price)||0,image_url:row.image_url||null,stock,quantity};
 }
 
 export function CartProvider({children}:{children:React.ReactNode}) {
