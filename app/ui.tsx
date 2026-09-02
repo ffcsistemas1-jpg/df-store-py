@@ -15,6 +15,8 @@ export type CartItem = {
   quantity:number;
 };
 
+const CART_LOCAL_KEY = "df_store_py_cart_v2";
+
 type CartContextType = {
   items:CartItem[];
   add:(p:any, quantity?:number)=>void;
@@ -46,15 +48,40 @@ export function CartProvider({children}:{children:React.ReactNode}) {
      const session=getCartSession();
      sessionRef.current=session;
      trackVisit();
+
+     // Local fallback: the cart must work even before the final Supabase SQL is run.
+     try{
+       const raw=window.localStorage.getItem(CART_LOCAL_KEY);
+       if(raw){
+         const local=JSON.parse(raw);
+         if(Array.isArray(local) && !cancelled) setItems(local.map(normalizeItem).filter(Boolean) as CartItem[]);
+       }
+     }catch{}
+
+     // Supabase sync is optional; when available it becomes the persistent server copy.
      try{
        const s=createClient();
        const {data,error}=await s.from("cart_items").select("product_id,name,price,image_url,stock,quantity").eq("session",session);
-       if(!cancelled && !error) setItems((data||[]).map(normalizeItem).filter(Boolean) as CartItem[]);
+       if(!cancelled && !error && Array.isArray(data) && data.length){
+         setItems(data.map(normalizeItem).filter(Boolean) as CartItem[]);
+       }
      } catch {}
      if(!cancelled) setReady(true);
    })();
    return ()=>{cancelled=true};
  },[]);
+
+ // Always keep a browser copy so navigation/reloads never lose the cart.
+ useEffect(()=>{
+   if(!ready) return;
+   try{ window.localStorage.setItem(CART_LOCAL_KEY, JSON.stringify(items)); }catch{}
+   const session=sessionRef.current;
+   if(!session || !items.length) return;
+   try{
+     const s=createClient();
+     Promise.all(items.map(item=>s.from("cart_items").upsert({session,product_id:item.id,name:item.name,price:item.price,image_url:item.image_url||null,stock:item.stock,quantity:item.quantity,updated_at:new Date().toISOString()},{onConflict:"session,product_id"}))).catch(()=>{});
+   }catch{}
+ },[items,ready]);
 
  function persist(item:CartItem){
    const session=sessionRef.current; if(!session) return;
@@ -76,31 +103,24 @@ export function CartProvider({children}:{children:React.ReactNode}) {
    const stock=Math.max(0,Number(p.stock)||0);
    if(stock<=0) return;
    const qty=Math.max(1,Math.floor(Number(quantity)||1));
-   let saved:CartItem|null=null;
    setItems(prev=>{
      const found=prev.find(x=>x.id===String(p.id));
      if(found){
        const updated={...found,stock,price:Number(p.price)||found.price,name:p.name||found.name,image_url:p.image_url||found.image_url,quantity:Math.min(found.quantity+qty,stock)};
-       saved=updated;
        return prev.map(x=>x.id===String(p.id)?updated:x);
      }
      const created={id:String(p.id),name:p.name,price:Number(p.price)||0,image_url:p.image_url||null,stock,quantity:Math.min(qty,stock)};
-     saved=created;
      return [...prev,created];
    });
-   if(saved) persist(saved);
  };
  const remove=(id:string)=>{setItems(prev=>prev.filter(x=>x.id!==id)); removeRemote(id);};
  const update=(id:string,q:number)=>{
-   let saved:CartItem|null=null;
    setItems(prev=>prev.map(x=>{
      if(x.id!==id) return x;
      const next=Math.floor(Number(q)||1);
      const updated={...x,quantity:Math.max(1,Math.min(next,Math.max(1,x.stock||next)))};
-     saved=updated;
      return updated;
    }));
-   if(saved) persist(saved);
  };
  const clear=()=>{setItems([]); clearRemote();};
  const syncStock=(stocks:Record<string,number>)=>{
@@ -108,7 +128,6 @@ export function CartProvider({children}:{children:React.ReactNode}) {
      const stock=Math.max(0,Number(stocks[x.id]));
      if(!Number.isFinite(stock)||stock<=0){removeRemote(x.id);return [];}
      const updated={...x,stock,quantity:Math.min(x.quantity,stock)};
-     if(updated.quantity!==x.quantity||updated.stock!==x.stock) persist(updated);
      return [updated];
    }));
  };

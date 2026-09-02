@@ -27,7 +27,7 @@ export default function Cart(){
    }
    check();
    return()=>{cancelled=true};
- },[]);
+ },[items.length]);
  if(!items.length)return <section><small>COMPRA</small><h1>Carrito</h1><div className="empty"><h2>Tu carrito está vacío</h2><p>Agregá productos del catálogo para continuar.</p><Link className="btn" href="/catalogo">Ir al catálogo</Link></div></section>;
  return <section>
    {checkingStock&&<p className="muted" role="status">Verificando disponibilidad...</p>}
