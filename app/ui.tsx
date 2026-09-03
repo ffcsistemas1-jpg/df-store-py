@@ -1,10 +1,12 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Script from "next/script";
+import { useRouter, usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "../lib/supabase/client";
 import { getCartSession } from "../lib/cart-session";
 import { trackVisit } from "../lib/analytics";
+import { PIXEL_ID, pixelTrack, sendCapiEvent, newEventId, captureAttribution } from "../lib/meta-pixel";
 
 export type CartItem = {
   id:string;
@@ -106,6 +108,9 @@ export function CartProvider({children}:{children:React.ReactNode}) {
      try{ window.localStorage.setItem(CART_LOCAL_KEY, JSON.stringify(next)); }catch{}
      return next;
    });
+   {const evId=newEventId();const params={content_ids:[String(p.id)],content_type:"product",content_name:p.name,value:Number(p.price)||0,currency:"PYG"};
+   pixelTrack("AddToCart",params,evId);
+   sendCapiEvent({event_name:"AddToCart",event_id:evId,value:params.value,currency:"PYG",content_ids:params.content_ids});}
  };
  const remove=(id:string)=>{setItems(prev=>prev.filter(x=>x.id!==id)); removeRemote(id);};
  const update=(id:string,q:number)=>{
@@ -136,13 +141,62 @@ export function Header() {
  return <header><div className="head"><Link href="/" className="brand" onClick={()=>setOpen(false)}><b>DF</b> Store PY</Link>
   <form className="head-search" onSubmit={submitSearch}><input type="search" placeholder="Buscar productos" value={q} onChange={e=>setQ(e.target.value)} aria-label="Buscar productos"/><button type="submit" aria-label="Buscar">🔎</button></form>
   <button className="hamb" aria-label="Abrir menú" onClick={()=>setOpen(!open)}>☰</button>
-  <nav className={open?"open":""}><Link onClick={()=>setOpen(false)} href="/catalogo">Catálogo</Link><Link onClick={()=>setOpen(false)} href="/catalogo?categoria=Ropa">Ropa</Link><Link onClick={()=>setOpen(false)} href="/catalogo?categoria=Hogar">Hogar</Link><Link onClick={()=>setOpen(false)} href="/carrito">🛒 Carrito{count>0?` (${count})`:""}</Link><Link onClick={()=>setOpen(false)} href="/admin">Admin</Link></nav></div></header>;
+  <nav className={open?"open":""}><Link onClick={()=>setOpen(false)} href="/catalogo">Catálogo</Link><Link onClick={()=>setOpen(false)} href="/catalogo?categoria=Ropa">Ropa</Link><Link onClick={()=>setOpen(false)} href="/catalogo?categoria=Hogar">Hogar</Link><Link onClick={()=>setOpen(false)} href="/carrito">🛒 Carrito{count>0?` (${count})`:""}</Link></nav></div></header>;
 }
 export function WhatsAppButton(){
  const [number,setNumber]=useState("");
  useEffect(()=>{(async()=>{try{const s=createClient();const {data}=await s.from("store_settings").select("whatsapp").eq("id",1).maybeSingle();setNumber(data?.whatsapp||"")}catch{}})()},[]);
  if(!number)return null;
  return <a className="whatsapp-float" href={`https://wa.me/${number}`} target="_blank" rel="noreferrer" aria-label="Contactar por WhatsApp">💬</a>;
+}
+
+export function MetaPixel(){
+ const pathname=usePathname();
+ useEffect(()=>{ captureAttribution(); },[]);
+ useEffect(()=>{
+  const id=newEventId();
+  pixelTrack("PageView",{},id);
+  sendCapiEvent({event_name:"PageView",event_id:id});
+ },[pathname]);
+ if(!PIXEL_ID) return null;
+ return <>
+  <Script id="meta-pixel-base" strategy="afterInteractive">{`
+   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+   n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+   n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+   t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script',
+   'https://connect.facebook.net/en_US/fbevents.js');
+   fbq('init', '${PIXEL_ID}');
+   fbq('track', 'PageView');
+  `}</Script>
+  <noscript>
+   <img height="1" width="1" style={{display:"none"}} alt="" src={`https://www.facebook.com/tr?id=${PIXEL_ID}&ev=PageView&noscript=1`}/>
+  </noscript>
+ </>;
+}
+
+export function ServiceWorkerRegister(){
+ useEffect(()=>{
+  if(typeof window!=="undefined" && "serviceWorker" in navigator){
+   navigator.serviceWorker.register("/sw.js").catch(()=>{});
+  }
+ },[]);
+ return null;
+}
+
+export function InstallPrompt(){
+ const [prompt,setPrompt]=useState<any>(null);
+ const [installed,setInstalled]=useState(false);
+ useEffect(()=>{
+  const onPrompt=(e:any)=>{ e.preventDefault(); setPrompt(e); };
+  const onInstalled=()=>{ setInstalled(true); setPrompt(null); };
+  window.addEventListener("beforeinstallprompt",onPrompt);
+  window.addEventListener("appinstalled",onInstalled);
+  return ()=>{ window.removeEventListener("beforeinstallprompt",onPrompt); window.removeEventListener("appinstalled",onInstalled); };
+ },[]);
+ if(!prompt||installed) return null;
+ const handleInstall=async()=>{ try{ prompt.prompt(); await prompt.userChoice; }catch{} setPrompt(null); };
+ return <button type="button" className="install-app-btn" onClick={handleInstall}>⬇ Instalar app</button>;
 }
 
 export function TopBanner(){

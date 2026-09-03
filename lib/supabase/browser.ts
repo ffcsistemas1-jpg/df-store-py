@@ -1,7 +1,3 @@
-import { createBrowserClient } from "@supabase/ssr";
-export function createClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error("Faltan las variables de Supabase");
-  return createBrowserClient(url, key);
-}
+// Alias de compatibilidad: la implementación real vive en ./client.
+// Se mantiene este archivo porque varias páginas del panel admin lo importan así.
+export { createClient } from "./client";
