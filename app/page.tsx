@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ProductCard, TrustBadges } from "./ui";
+import { ProductCard, TrustBadges, MobileStorefront } from "./ui";
 import { getProducts, getPromotions } from "../lib/products";
 export default async function Home(){
  const ps=await getProducts();
  const promos=await getPromotions();
- return <><section className="hero"><div><small>DF STORE PY</small><h1>Todo lo que buscan en un solo lugar.</h1><p>Ropa, hogar y productos seleccionados. Comprá de forma simple, rápida y segura.</p><Link className="btn" href="/catalogo">Ver catálogo</Link></div><div className="logo">DF<span>STORE PY</span></div></section>
+ return <><MobileStorefront products={ps} promotions={promos}/><div className="desktop-home"><section className="hero mobile-hero"><div><small>DF STORE PY</small><h1>Todo lo que buscan en un solo lugar.</h1><p>Ropa, hogar y productos seleccionados. Comprá de forma simple, rápida y segura.</p><Link className="btn" href="/catalogo">Ver catálogo</Link></div><div className="logo">DF<span>STORE PY</span></div></section>
  <TrustBadges/>
  <section><div className="title"><div><small>DESTACADOS</small><h2>Productos</h2></div><Link href="/catalogo">Ver todos →</Link></div><div className="grid">{ps.slice(0,6).map(p=><ProductCard key={p.id} p={p}/>)}</div></section>
 
@@ -58,5 +58,5 @@ export default async function Home(){
   <h2>¿Encontraste algo que te gusta?</h2>
   <p>Elegí tu producto, confirmamos la disponibilidad y te ayudamos a completar tu pedido.</p>
   <Link className="btn" href="/catalogo">Comprar ahora</Link>
- </section></>;
+ </section></div></>;
 }

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { CartProvider, Header, WhatsAppButton, TopBanner, MetaPixel, InstallPrompt, ServiceWorkerRegister, SiteFooter } from "./ui";
+import { CartProvider, Header, WhatsAppButton, TopBanner, MetaPixel, InstallPrompt, ServiceWorkerRegister, SiteFooter, MobileCustomerNav } from "./ui";
 
 export const metadata: Metadata = {
  title: "DF Store PY",
@@ -11,5 +11,5 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: "#98234d" };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
- return <html lang="es"><body><MetaPixel/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main>{children}</main><InstallPrompt/><WhatsAppButton/><SiteFooter/></CartProvider></body></html>;
+ return <html lang="es"><body><MetaPixel/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main>{children}</main><InstallPrompt/><WhatsAppButton/><MobileCustomerNav/><SiteFooter/></CartProvider></body></html>;
 }
