@@ -53,3 +53,31 @@
 .delivery-simple{margin-bottom:18px}.delivery-city-list{display:flex;flex-direction:column;margin-top:16px}.delivery-city-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:15px 4px;border-bottom:1px solid #eadfe0}.delivery-city-row>div:first-child{display:flex;flex-direction:column;gap:4px}.delivery-city-row>div:first-child strong{font-size:18px}.delivery-city-row small{color:#71686a;font-size:12px}.delivery-fee{display:flex;align-items:center;gap:12px;min-width:170px;justify-content:flex-end}.delivery-fee>strong{font-size:17px}.edit-pencil{border:1px solid #eadfe0;background:#fff;border-radius:9px;padding:7px 9px;cursor:pointer;font-size:16px}.delivery-fee-edit{display:flex;align-items:center;gap:7px;justify-content:flex-end}.delivery-fee-edit span{font-weight:800}.delivery-fee-edit input{width:130px;padding:10px;border:1px solid #d8cdcf;border-radius:9px;font:inherit}.delivery-fee-edit .btn{margin-top:0;padding:10px 13px}.delivery-fee-edit .linkbtn{margin-right:0}@media(max-width:600px){.delivery-city-row{align-items:flex-start}.delivery-fee{min-width:0}.delivery-fee-edit{flex-wrap:wrap;justify-content:flex-end}.delivery-fee-edit input{width:110px}}
 .install-app-btn{position:fixed;left:20px;bottom:20px;z-index:40;background:#98234d;color:#fff;border:0;border-radius:999px;padding:13px 20px;font-weight:800;font:inherit;box-shadow:0 6px 18px rgba(33,23,26,.25);cursor:pointer}
 @media(max-width:600px){.install-app-btn{left:14px;bottom:86px;padding:11px 16px;font-size:14px}}
+
+/* --- Sellos de confianza, medios de pago y footer profesional --- */
+.trust-badges{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;padding:24px 6%;background:#faf7f5;border-top:1px solid #eadfe0;border-bottom:1px solid #eadfe0}
+.trust-badge{display:flex;align-items:center;gap:12px}
+.trust-badge span{font-size:26px}
+.trust-badge strong{display:block;font-size:14px}
+.trust-badge small{color:#71686a;font-size:12px}
+@media(max-width:900px){.trust-badges{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.trust-badges{grid-template-columns:1fr;padding:18px 6%}}
+
+.payment-methods{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.payment-chip{background:#fff;border:1px solid #eadfe0;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;color:#5c5557}
+
+.site-footer{background:#21171a;color:#fff;padding:45px 6% 0;margin-top:60px}
+.footer-top{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:28px;padding-bottom:30px;border-bottom:1px solid rgba(255,255,255,.12)}
+.footer-col{display:flex;flex-direction:column;gap:10px}
+.footer-col span{color:#cdbfc2;font-size:14px}
+.footer-col strong{font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:#cdbfc2;margin-bottom:2px}
+.footer-col a{color:#fff;text-decoration:none;font-size:14px}
+.footer-col a:hover{text-decoration:underline}
+.footer-bottom{padding:18px 0;color:#9c9092;font-size:12px;text-align:center}
+@media(max-width:900px){.footer-top{grid-template-columns:1fr 1fr}}
+@media(max-width:500px){.footer-top{grid-template-columns:1fr}}
+
+.legal-page .panel{max-width:760px}
+.legal-page h2{margin-top:26px;margin-bottom:8px;font-size:19px}
+.legal-list{padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.legal-list li{list-style:disc}

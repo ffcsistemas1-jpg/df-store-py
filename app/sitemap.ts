@@ -7,6 +7,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticEntries: MetadataRoute.Sitemap = [
     { url: `${base}/`, changeFrequency: "daily", priority: 1 },
     { url: `${base}/catalogo`, changeFrequency: "daily", priority: 0.9 },
+    { url: `${base}/quienes-somos`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${base}/terminos-y-condiciones`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${base}/politica-de-privacidad`, changeFrequency: "monthly", priority: 0.3 },
   ];
   const productEntries: MetadataRoute.Sitemap = products
     .filter((p) => !p.id.startsWith("demo-"))

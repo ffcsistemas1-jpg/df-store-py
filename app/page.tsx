@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ProductCard } from "./ui";
+import { ProductCard, TrustBadges } from "./ui";
 import { getProducts, getPromotions } from "../lib/products";
 export default async function Home(){
  const ps=await getProducts();
  const promos=await getPromotions();
  return <><section className="hero"><div><small>DF STORE PY</small><h1>Todo lo que buscan en un solo lugar.</h1><p>Ropa, hogar y productos seleccionados. Comprá de forma simple, rápida y segura.</p><Link className="btn" href="/catalogo">Ver catálogo</Link></div><div className="logo">DF<span>STORE PY</span></div></section>
+ <TrustBadges/>
  <section><div className="title"><div><small>DESTACADOS</small><h2>Productos</h2></div><Link href="/catalogo">Ver todos →</Link></div><div className="grid">{ps.slice(0,6).map(p=><ProductCard key={p.id} p={p}/>)}</div></section>
 
  {promos.length>0 && <section><div className="title"><div><small>OPORTUNIDADES</small><h2>Promociones de la semana</h2></div><Link href="/catalogo">Ver todo el catálogo →</Link></div>
@@ -41,7 +42,7 @@ export default async function Home(){
   </ul>
  </section>
 
- <section className="faq"><div className="title"><div><small>ANTES DE COMPRAR</small><h2>Preguntas frecuentes</h2><p className="muted">Si todavía tenés dudas, escribinos por el botón de WhatsApp.</p></div></div>
+ <section className="faq" id="preguntas-frecuentes"><div className="title"><div><small>ANTES DE COMPRAR</small><h2>Preguntas frecuentes</h2><p className="muted">Si todavía tenés dudas, escribinos por el botón de WhatsApp.</p></div></div>
   <div className="faq-list">
    <details><summary>¿Cómo realizo mi pedido?</summary><p>Elegí el producto, presioná Agregar al carrito y completá el checkout con tus datos.</p></details>
    <details><summary>¿Puedo pagar al recibir?</summary><p>Sí, en las zonas habilitadas. El checkout muestra la modalidad disponible antes de confirmar.</p></details>

@@ -226,3 +226,53 @@ export function BuyNowButton({p}:{p:any}){
  const handleBuy=()=>{ if(stock<=0) return; add(p); router.push("/carrito"); };
  return <button type="button" className="btn secondary" disabled={stock<=0} onClick={handleBuy}>{stock<=0?"Sin stock":"Comprar"}</button>;
 }
+
+export function TrustBadges(){
+ return <div className="trust-badges">
+  <div className="trust-badge"><span>🔒</span><div><strong>Compra segura</strong><small>Conexión cifrada (HTTPS)</small></div></div>
+  <div className="trust-badge"><span>🚚</span><div><strong>Delivery propio</strong><small>Asunción y Central</small></div></div>
+  <div className="trust-badge"><span>💳</span><div><strong>Pagás como quieras</strong><small>Contra entrega, Tigo Money o transferencia</small></div></div>
+  <div className="trust-badge"><span>💬</span><div><strong>Atención directa</strong><small>Respondemos por WhatsApp</small></div></div>
+ </div>;
+}
+
+export function PaymentMethods(){
+ return <div className="payment-methods">
+  <span className="payment-chip">Pago al recibir</span>
+  <span className="payment-chip">Transferencia bancaria</span>
+  <span className="payment-chip">Giro Tigo</span>
+ </div>;
+}
+
+export function SiteFooter(){
+ const [whatsapp,setWhatsapp]=useState("");
+ useEffect(()=>{(async()=>{try{const s=createClient();const {data}=await s.from("store_settings").select("whatsapp").eq("id",1).maybeSingle();setWhatsapp(data?.whatsapp||"")}catch{}})()},[]);
+ return <footer className="site-footer">
+  <div className="footer-top">
+   <div className="footer-col">
+    <b>DF Store PY</b>
+    <span>Todo lo que buscan en un solo lugar</span>
+    <PaymentMethods/>
+   </div>
+   <div className="footer-col">
+    <strong>Ayuda</strong>
+    <Link href="/#preguntas-frecuentes">Preguntas frecuentes</Link>
+    <Link href="/quienes-somos">Quiénes somos</Link>
+    {whatsapp && <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">Contactar por WhatsApp</a>}
+   </div>
+   <div className="footer-col">
+    <strong>Legal</strong>
+    <Link href="/terminos-y-condiciones">Términos y condiciones</Link>
+    <Link href="/politica-de-privacidad">Política de privacidad</Link>
+   </div>
+   <div className="footer-col">
+    <strong>Seguinos</strong>
+    <a href="https://www.facebook.com/profile.php?id=61580238164654" target="_blank" rel="noreferrer">Facebook</a>
+    <a href="https://www.instagram.com/todo_tecnopy" target="_blank" rel="noreferrer">Instagram · @todo_tecnopy</a>
+   </div>
+  </div>
+  <div className="footer-bottom">
+   <span>© {new Date().getFullYear()} DF Store PY — Todos los derechos reservados</span>
+  </div>
+ </footer>;
+}
