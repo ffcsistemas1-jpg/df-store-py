@@ -3,6 +3,22 @@ import { useEffect, useState } from "react";
 import { createClient } from "../../../lib/supabase/browser";
 
 const money = (n: number) => `₲ ${Number(n || 0).toLocaleString("es-PY")}`;
+const EVENT_LABELS: Record<string,string> = {
+  PageView: "Vista de página",
+  ViewContent: "Vista de producto",
+  AddToCart: "Agregado al carrito",
+  InitiateCheckout: "Inicio de compra",
+  Purchase: "Compra",
+};
+const labelFor = (name: string) => EVENT_LABELS[name] || name;
+const STATUS_LABELS: Record<string,string> = {
+  sent: "Enviado",
+  error: "Error",
+  network_error: "Error de red",
+  not_configured: "No configurado",
+  duplicate_ignored: "Duplicado ignorado",
+};
+const statusLabelFor = (status: string) => STATUS_LABELS[status] || status;
 
 type Status = {
   pixelConfigured: boolean; pixelIdMasked: string | null; capiConfigured: boolean;
@@ -74,11 +90,11 @@ export default function MetaAdsDashboard() {
       <div className="formgrid">
         <div className="panel">
           <h2>Eventos por tipo (últimos 50)</h2>
-          {Object.keys(byName).length ? Object.entries(byName).map(([k, v]) => <div className="checkout-total" key={k}><span>{k}</span><strong>{v}</strong></div>) : <p className="muted">Todavía no se registró ningún evento.</p>}
+          {Object.keys(byName).length ? Object.entries(byName).map(([k, v]) => <div className="checkout-total" key={k}><span>{labelFor(k)}</span><strong>{v}</strong></div>) : <p className="muted">Todavía no se registró ningún evento.</p>}
         </div>
         <div className="panel">
-          <h2>Último Purchase</h2>
-          {lastPurchase ? <><p><b>Fecha:</b> {new Date(lastPurchase.created_at).toLocaleString("es-PY")}</p><p><b>Valor:</b> {money(lastPurchase.value || 0)} {lastPurchase.currency}</p><p><b>Estado:</b> {lastPurchase.status}</p>{lastPurchase.utm_campaign && <p><b>Campaña:</b> {lastPurchase.utm_campaign}</p>}</> : <p className="muted">Todavía no hay compras registradas con Conversions API.</p>}
+          <h2>Última compra</h2>
+          {lastPurchase ? <><p><b>Fecha:</b> {new Date(lastPurchase.created_at).toLocaleString("es-PY")}</p><p><b>Valor:</b> {money(lastPurchase.value || 0)} {lastPurchase.currency}</p><p><b>Estado:</b> {statusLabelFor(lastPurchase.status)}</p>{lastPurchase.utm_campaign && <p><b>Campaña:</b> {lastPurchase.utm_campaign}</p>}</> : <p className="muted">Todavía no hay compras registradas con Conversions API.</p>}
         </div>
       </div>
 
@@ -87,7 +103,7 @@ export default function MetaAdsDashboard() {
         {ordersWithAttribution.length ? ordersWithAttribution.map((o) => <div className="checkout-total" key={o.id}><span>{o.utm_campaign || o.utm_source || "fbclid presente"} — {new Date(o.created_at).toLocaleDateString("es-PY")}</span><strong>{money(o.total)}</strong></div>) : <p className="muted">Ninguno de los últimos 20 pedidos llegó con parámetros de campaña todavía.</p>}
       </div>
 
-      {errors.length > 0 && <div className="panel"><h2>Errores recientes</h2>{errors.slice(0, 10).map((e) => <div className="checkout-total" key={e.id}><span>{e.event_name} — {new Date(e.created_at).toLocaleString("es-PY")}</span><strong>{e.status}</strong></div>)}</div>}
+      {errors.length > 0 && <div className="panel"><h2>Errores recientes</h2>{errors.slice(0, 10).map((e) => <div className="checkout-total" key={e.id}><span>{labelFor(e.event_name)} — {new Date(e.created_at).toLocaleString("es-PY")}</span><strong>{statusLabelFor(e.status)}</strong></div>)}</div>}
       {err && <p>⚠️ {err}</p>}
     </>
   );

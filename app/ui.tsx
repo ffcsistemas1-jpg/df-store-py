@@ -208,7 +208,6 @@ export function InstallPrompt(){
  const [installed,setInstalled]=useState(false);
  const [iosHint,setIosHint]=useState(false);
  useEffect(()=>{
-  if(pathname?.startsWith("/admin")) return;
   const onPrompt=(e:any)=>{ e.preventDefault(); setPrompt(e); };
   const onInstalled=()=>{ setInstalled(true); setPrompt(null); setIosHint(false); };
   window.addEventListener("beforeinstallprompt",onPrompt);
@@ -218,7 +217,7 @@ export function InstallPrompt(){
   if(isIos && !standalone) setIosHint(true);
   return ()=>{ window.removeEventListener("beforeinstallprompt",onPrompt); window.removeEventListener("appinstalled",onInstalled); };
  },[pathname]);
- if(pathname?.startsWith("/admin")||installed) return null;
+ if(installed) return null;
  const handleInstall=async()=>{ try{ prompt.prompt(); await prompt.userChoice; }catch{} setPrompt(null); };
  if(prompt) return <button type="button" className="install-app-btn" onClick={handleInstall}>⬇ Instalar app</button>;
  if(iosHint) return <button type="button" className="install-app-btn" onClick={()=>setIosHint(v=>!v)}>⬇ Instalar app<span className="install-ios-tip">Tocá <b>Compartir</b> ⬆️ y luego <b>&quot;Agregar a inicio&quot;</b></span></button>;
