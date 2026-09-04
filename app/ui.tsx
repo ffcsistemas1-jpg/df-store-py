@@ -203,27 +203,6 @@ export function ServiceWorkerRegister(){
  return null;
 }
 
-export function InstallPrompt(){
- const pathname=usePathname(); const [prompt,setPrompt]=useState<any>(null);
- const [installed,setInstalled]=useState(false);
- const [iosHint,setIosHint]=useState(false);
- useEffect(()=>{
-  const onPrompt=(e:any)=>{ e.preventDefault(); setPrompt(e); };
-  const onInstalled=()=>{ setInstalled(true); setPrompt(null); setIosHint(false); };
-  window.addEventListener("beforeinstallprompt",onPrompt);
-  window.addEventListener("appinstalled",onInstalled);
-  const standalone=window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone===true;
-  const isIos=/iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
-  if(isIos && !standalone) setIosHint(true);
-  return ()=>{ window.removeEventListener("beforeinstallprompt",onPrompt); window.removeEventListener("appinstalled",onInstalled); };
- },[pathname]);
- if(installed) return null;
- const handleInstall=async()=>{ try{ prompt.prompt(); await prompt.userChoice; }catch{} setPrompt(null); };
- if(prompt) return <button type="button" className="install-app-btn" onClick={handleInstall}>⬇ Instalar app</button>;
- if(iosHint) return <button type="button" className="install-app-btn" onClick={()=>setIosHint(v=>!v)}>⬇ Instalar app<span className="install-ios-tip">Tocá <b>Compartir</b> ⬆️ y luego <b>&quot;Agregar a inicio&quot;</b></span></button>;
- return null;
-}
-
 export function TopBanner(){
  const pathname=usePathname(); const [text,setText]=useState("");
  useEffect(()=>{(async()=>{try{const s=createClient();const {data}=await s.from("store_settings").select("banner_text").eq("id",1).maybeSingle();setText(data?.banner_text||"")}catch{}})()},[]);
