@@ -1,9 +1,10 @@
 "use client";
 import {useMemo,useState} from "react";
 import {createClient} from "../../lib/supabase/client";
+import {formatGs,parseGs} from "../../lib/format-gs";
 
-const MAX_IMAGES=5;
-const MAX_VIDEOS=5;
+const MAX_IMAGES=Infinity;
+const MAX_VIDEOS=Infinity;
 const TUS_CHUNK=6*1024*1024;
 const IMAGE_EXT=new Set(["jpg","jpeg","png","webp","avif","gif","heic","heif","bmp","tif","tiff","jfif"]);
 const VIDEO_EXT=new Set(["mp4","mov","m4v","webm","mkv","avi","mpeg","mpg","3gp","3g2","mts","m2ts"]);
@@ -84,7 +85,6 @@ export function AdminProductForm(){
   e.preventDefault(); if(busy)return; setBusy(true); setMsg("");
   const s=createClient(); const productId=crypto.randomUUID(); const uploaded:UploadedMedia[]=[];
   try{
-   if(images.length>MAX_IMAGES||videos.length>MAX_VIDEOS) throw new Error("Máximo 5 imágenes y 5 videos por producto.");
    for(let i=0;i<images.length;i++) uploaded.push(await tusUpload(s,productId,images[i],i));
    for(let i=0;i<videos.length;i++) uploaded.push(await tusUpload(s,productId,videos[i],i));
    const firstImage=uploaded.find(x=>x.kind==="image")?.url||null;
@@ -111,17 +111,17 @@ export function AdminProductForm(){
 
  return <form onSubmit={save} className="product-form product-form-pro">
   <label>Nombre del producto*<input required value={name} onChange={e=>setName(e.target.value)} placeholder="Ej. Cocina infrarroja doble hornalla"/></label>
-  <div className="twocol"><label>Precio*<input required type="number" min="0" value={price} onChange={e=>setPrice(e.target.value)} placeholder="120000"/></label><label>Costo<input type="number" min="0" value={cost} onChange={e=>setCost(e.target.value)} placeholder="0"/></label></div>
+  <div className="twocol"><label>Precio*<input required inputMode="numeric" value={formatGs(price)} onChange={e=>setPrice(String(parseGs(e.target.value)))} placeholder="Ej. 120.000"/></label><label>Costo<input inputMode="numeric" value={formatGs(cost)} onChange={e=>setCost(String(parseGs(e.target.value)))} placeholder="0"/></label></div>
   <div className="twocol"><label>Stock<input type="number" min="0" value={stock} onChange={e=>setStock(e.target.value)}/></label><label>Categoría<select value={category} onChange={e=>setCategory(e.target.value)}><option>Ropa</option><option>Hogar</option><option>Electro</option><option>Belleza</option><option>Otros</option></select></label></div>
   <label>Descripción<textarea value={description} onChange={e=>setDescription(e.target.value)} placeholder="Características, medidas, beneficios, contenido..."/></label>
 
-  <section className="media-upload-zone"><div className="media-upload-head"><div><small>MULTIMEDIA</small><h3>Imágenes del producto</h3><p>Hasta 5 archivos. La primera imagen será la portada.</p></div><b>{images.length}/{MAX_IMAGES}</b></div>
-   <label className="upload upload-multiple">📷 Seleccionar imágenes<input type="file" multiple accept="image/*,.heic,.heif,.avif,.tif,.tiff,.bmp,.jfif" disabled={busy||images.length>=MAX_IMAGES} onChange={e=>{addFiles("image",e.target.files);e.currentTarget.value=""}}/><span>Podés elegir varias de una vez desde la galería del teléfono.</span></label>
+  <section className="media-upload-zone"><div className="media-upload-head"><div><small>MULTIMEDIA</small><h3>Imágenes del producto</h3><p>Sin límite de cantidad. La primera imagen será la portada.</p></div><b>{images.length}</b></div>
+   <label className="upload upload-multiple">📷 Seleccionar imágenes<input type="file" multiple accept="image/*,.heic,.heif,.avif,.tif,.tiff,.bmp,.jfif" disabled={busy} onChange={e=>{addFiles("image",e.target.files);e.currentTarget.value=""}}/><span>Podés elegir varias de una vez desde la galería del teléfono.</span></label>
    {renderFiles(images,"image")}
   </section>
 
-  <section className="media-upload-zone"><div className="media-upload-head"><div><small>MULTIMEDIA</small><h3>Videos del producto</h3><p>Hasta 5 videos. La carga usa fragmentos reintentables para archivos grandes.</p></div><b>{videos.length}/{MAX_VIDEOS}</b></div>
-   <label className="upload upload-multiple">🎥 Seleccionar videos<input type="file" multiple accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi,.mpeg,.mpg,.3gp,.3g2,.mts,.m2ts" disabled={busy||videos.length>=MAX_VIDEOS} onChange={e=>{addFiles("video",e.target.files);e.currentTarget.value=""}}/><span>Sin límite artificial de la app: se respeta el máximo global de tu plan de Supabase.</span></label>
+  <section className="media-upload-zone"><div className="media-upload-head"><div><small>MULTIMEDIA</small><h3>Videos del producto</h3><p>Sin límite de cantidad. La carga usa fragmentos reintentables para archivos grandes.</p></div><b>{videos.length}</b></div>
+   <label className="upload upload-multiple">🎥 Seleccionar videos<input type="file" multiple accept="video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi,.mpeg,.mpg,.3gp,.3g2,.mts,.m2ts" disabled={busy} onChange={e=>{addFiles("video",e.target.files);e.currentTarget.value=""}}/><span>Sin límite artificial de la app: se respeta el máximo global de tu plan de Supabase.</span></label>
    {renderFiles(videos,"video")}
   </section>
   <div className="media-upload-summary"><b>{images.length+videos.length} archivo(s)</b><span>{formatBytes(totalBytes)} seleccionados</span></div>
