@@ -99,7 +99,7 @@ export function AdminProductForm(){
    setName("");setPrice("");setCost("");setStock("0");setDescription("");setImages([]);setVideos([]);
   }catch(err:any){
    if(uploaded.length) await s.storage.from("productos").remove(uploaded.map(x=>x.path)).catch(()=>{});
-   await s.from("products").delete().eq("id",productId).catch(()=>{});
+   try{ await s.from("products").delete().eq("id",productId); }catch{}
    const all=[...images,...videos]; all.filter(x=>x.status==="uploading").forEach(x=>updateItem(x.kind,x.id,{status:"error",error:err?.message||"Error"}));
    setMsg("❌ "+(err?.message||"No se pudo guardar el producto."));
   } finally{setBusy(false)}
