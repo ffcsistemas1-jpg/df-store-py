@@ -13,8 +13,10 @@ export default function Pedidos(){
   setMsg("");
   if(value==="__prueba__"){
    if(!confirm("¿Marcar este pedido como PRUEBA?\n\nSe va a eliminar por completo, sin dejar ningún registro. No se puede deshacer.")) return;
-   const s=createClient(); const {error}=await s.from("orders").delete().eq("id",id);
-   if(error)setMsg(error.message); else setOrders(x=>x.filter(o=>o.id!==id));
+   const s=createClient(); const {data,error}=await s.from("orders").delete().eq("id",id).select("id");
+   if(error){setMsg("❌ "+error.message);return}
+   if(!data||data.length===0){setMsg("❌ No se pudo eliminar: puede que falte el permiso de borrado en la base de datos. Corré supabase/PATCH-BORRAR-PEDIDOS.sql en Supabase.");return}
+   setOrders(x=>x.filter(o=>o.id!==id));
    return;
   }
   const s=createClient(); const {error}=await s.from("orders").update({status:value}).eq("id",id); if(error)setMsg(error.message); else setOrders(x=>x.map(o=>o.id===id?{...o,status:value}:o));
