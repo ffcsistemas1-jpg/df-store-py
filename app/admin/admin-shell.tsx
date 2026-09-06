@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const NAV: { label: string; href: string; icon: string }[] = [
   { label: "Panel principal", href: "/admin", icon: "🏠" },
@@ -29,31 +29,15 @@ const MOBILE_NAV = [
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
-  const [installed, setInstalled] = useState(false);
-
-  useEffect(()=>{
-    const onPrompt=(e:any)=>{e.preventDefault();setInstallPrompt(e)};
-    const onInstalled=()=>{setInstalled(true);setInstallPrompt(null)};
-    window.addEventListener("beforeinstallprompt",onPrompt);
-    window.addEventListener("appinstalled",onInstalled);
-    return()=>{window.removeEventListener("beforeinstallprompt",onPrompt);window.removeEventListener("appinstalled",onInstalled)};
-  },[]);
 
   if (pathname === "/admin/login") return <>{children}</>;
 
   const isActive = (href: string) => href === "/admin" ? pathname === "/admin" : pathname?.startsWith(href);
-  const install=async()=>{
-    if(!installPrompt) return;
-    try{await installPrompt.prompt();await installPrompt.userChoice}catch{}
-    setInstallPrompt(null);
-  };
 
   return (
     <div className="admin-shell">
       <div className="admin-mobile-actions">
         <button type="button" className="admin-mobile-toggle" onClick={() => setOpen(v => !v)} aria-label="Abrir menú del administrador">☰ Menú</button>
-        {installPrompt&&!installed&&<button type="button" className="admin-install-btn" onClick={install}>⬇ Instalar DF Store PY Admin</button>}
       </div>
       <aside className={`admin-sidebar ${open ? "open" : ""}`}>
         <div className="admin-sidebar-title">

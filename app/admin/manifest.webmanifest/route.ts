@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+// Next.js solo reconoce el archivo especial manifest.ts en la RAÍZ de app/.
+// Para tener un segundo manifest independiente en /admin, lo servimos
+// manualmente con un Route Handler en esta misma ruta literal.
 export async function GET() {
   return NextResponse.json(
     {

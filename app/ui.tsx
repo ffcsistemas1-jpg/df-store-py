@@ -7,6 +7,7 @@ import { createClient } from "../lib/supabase/client";
 import { getCartSession } from "../lib/cart-session";
 import { trackVisit } from "../lib/analytics";
 import { PIXEL_ID, pixelTrack, sendCapiEvent, newEventId, captureAttribution } from "../lib/meta-pixel";
+import { normalizePyWhatsapp } from "../lib/phone-py";
 
 export type CartItem = {
   id:string;
@@ -149,7 +150,7 @@ export function WhatsAppButton(){
  const pathname=usePathname(); const [number,setNumber]=useState("");
  useEffect(()=>{(async()=>{try{const s=createClient();const {data}=await s.from("store_settings").select("whatsapp").eq("id",1).maybeSingle();setNumber(data?.whatsapp||"")}catch{}})()},[]);
  if(pathname?.startsWith("/admin")||!number)return null;
- return <a className="whatsapp-float" href={`https://wa.me/${number}`} target="_blank" rel="noreferrer" aria-label="Contactar por WhatsApp">💬</a>;
+ return <a className="whatsapp-float" href={`https://wa.me/${normalizePyWhatsapp(number)}`} target="_blank" rel="noreferrer" aria-label="Contactar por WhatsApp"><svg viewBox="0 0 32 32" width="30" height="30" fill="currentColor" aria-hidden="true"><path d="M16.001 3C9.096 3 3.5 8.596 3.5 15.5c0 2.42.687 4.68 1.878 6.598L3 29l7.086-2.34a12.44 12.44 0 0 0 5.915 1.507h.005c6.905 0 12.5-5.596 12.5-12.5S22.906 3 16.001 3Zm0 22.79h-.004a10.28 10.28 0 0 1-5.24-1.435l-.376-.223-4.207 1.39 1.412-4.1-.245-.42a10.24 10.24 0 0 1-1.57-5.502c0-5.673 4.617-10.29 10.293-10.29 2.75 0 5.335 1.072 7.28 3.018a10.22 10.22 0 0 1 3.013 7.276c0 5.674-4.617 10.286-10.356 10.286Zm5.646-7.7c-.31-.155-1.831-.903-2.114-1.007-.284-.104-.49-.155-.697.155-.207.31-.8 1.007-.98 1.213-.18.207-.362.233-.671.078-.31-.155-1.31-.483-2.494-1.538-.922-.822-1.545-1.837-1.726-2.147-.18-.31-.02-.478.136-.633.14-.14.31-.362.465-.543.155-.18.207-.31.31-.517.104-.207.052-.388-.026-.543-.078-.155-.697-1.68-.955-2.301-.252-.605-.507-.523-.697-.533l-.594-.01a1.14 1.14 0 0 0-.826.388c-.284.31-1.084 1.06-1.084 2.585 0 1.526 1.11 3 1.265 3.207.155.207 2.185 3.335 5.293 4.678.74.32 1.317.51 1.767.653.742.236 1.418.203 1.952.123.596-.089 1.831-.749 2.089-1.472.259-.723.259-1.343.181-1.472-.078-.129-.284-.207-.594-.362Z"/></svg></a>;
 }
 
 export function MetaPixel(){
@@ -315,7 +316,7 @@ export function SiteFooter(){
     <strong>Ayuda</strong>
     <Link href="/#preguntas-frecuentes">Preguntas frecuentes</Link>
     <Link href="/quienes-somos">Quiénes somos</Link>
-    {whatsapp && <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noreferrer">Contactar por WhatsApp</a>}
+    {whatsapp && <a href={`https://wa.me/${normalizePyWhatsapp(whatsapp)}`} target="_blank" rel="noreferrer">Contactar por WhatsApp</a>}
    </div>
    <div className="footer-col">
     <strong>Legal</strong>
