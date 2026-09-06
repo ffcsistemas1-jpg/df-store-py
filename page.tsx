@@ -47,22 +47,44 @@ export default function Checkout(){
  useEffect(()=>{if(!items.length||initiateTracked.current)return;initiateTracked.current=true;const evId=newEventId();const params={content_ids:items.map(i=>i.id),content_type:"product",num_items:items.reduce((n,i)=>n+i.quantity,0),value:subtotal,currency:"PYG"};pixelTrack("InitiateCheckout",params,evId);sendCapiEvent({event_name:"InitiateCheckout",event_id:evId,value:subtotal,currency:"PYG",content_ids:params.content_ids,num_items:params.num_items})},[items,subtotal]);
  useEffect(()=>{(async()=>{const session=getCartSession();sessionRef.current=session;try{const s=createClient();const {data,error}=await s.rpc("get_checkout_draft",{p_session:session});if(error)throw error;const row=Array.isArray(data)?data[0]:data;if(row){setForm(x=>({...x,full_name:row.full_name||x.full_name,whatsapp:row.whatsapp||x.whatsapp,email:row.email||x.email,department:row.department||x.department,city:row.city||x.city,neighborhood:row.neighborhood||x.neighborhood,address:row.address||x.address,delivery_type:row.delivery_type||x.delivery_type,payment_method:row.payment_method||x.payment_method,shipping_company_id:row.shipping_company_id||x.shipping_company_id,preferred_time:row.preferred_time||x.preferred_time,invoice_requested:Boolean(row.invoice_requested),maps_url:row.maps_url||x.maps_url,note:row.note||x.note}));if(!row.completed_at)setRestoredDraft(true)}}catch{}draftReady.current=true})()},[]);
  useEffect(()=>{formRef.current=form},[form]);
+ const buildDraftPayload=(f:typeof form)=>({full_name:f.full_name||null,whatsapp:f.whatsapp||null,email:f.email||null,department:f.department||null,city:f.city||null,neighborhood:f.neighborhood||null,address:f.address||null,delivery_type:f.delivery_type||null,payment_method:f.payment_method||null,shipping_company_id:f.shipping_company_id||null,preferred_time:f.preferred_time||null,invoice_requested:f.invoice_requested,maps_url:f.maps_url||null,note:f.note||null});
  const saveDraftNow=()=>{
   const f=formRef.current; const session=sessionRef.current;
   if(!draftReady.current||!session)return;
   if(!f.full_name.trim()&&!f.whatsapp.trim()&&!f.address.trim())return;
   const s=createClient();
-  s.rpc("save_checkout_draft",{p_session:session,p_draft:{full_name:f.full_name||null,whatsapp:f.whatsapp||null,email:f.email||null,department:f.department||null,city:f.city||null,neighborhood:f.neighborhood||null,address:f.address||null,delivery_type:f.delivery_type||null,payment_method:f.payment_method||null,shipping_company_id:f.shipping_company_id||null,preferred_time:f.preferred_time||null,invoice_requested:f.invoice_requested,maps_url:f.maps_url||null,note:f.note||null}}).then(({error}:any)=>{if(error)console.error("No se pudo guardar el borrador",error)});
+  s.rpc("save_checkout_draft",{p_session:session,p_draft:buildDraftPayload(f)}).then(({error}:any)=>{if(error)console.error("No se pudo guardar el borrador",error)});
+ };
+ // Al cerrar la pestaña / cambiar de app, un fetch normal (el que usa el
+ // cliente de Supabase) puede quedar cancelado por el navegador antes de
+ // llegar al servidor. Por eso acá se usa un fetch directo al endpoint REST
+ // con `keepalive:true`, que el navegador sí garantiza que se envíe aunque
+ // la página ya se esté cerrando. Así no se pierden los checkouts abandonados.
+ const saveDraftOnExit=()=>{
+  const f=formRef.current; const session=sessionRef.current;
+  if(!draftReady.current||!session)return;
+  if(!f.full_name.trim()&&!f.whatsapp.trim()&&!f.address.trim())return;
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if(!url||!key)return;
+  try{
+   fetch(`${url}/rest/v1/rpc/save_checkout_draft`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json","apikey":key,"Authorization":`Bearer ${key}`},
+    body:JSON.stringify({p_session:session,p_draft:buildDraftPayload(f)}),
+    keepalive:true
+   }).catch(()=>{});
+  }catch{}
  };
  useEffect(()=>{if(!draftReady.current)return;if(!form.full_name.trim()&&!form.whatsapp.trim()&&!form.address.trim())return;const timer=window.setTimeout(saveDraftNow,700);return()=>window.clearTimeout(timer)},[form]);
  // Si el cliente cierra la pestaña, cambia de app o navega afuera antes de que
  // pasen los 700ms de arriba, esto guarda el borrador al instante igual,
  // así no se pierden los checkouts abandonados por falta de tiempo.
  useEffect(()=>{
-  const onHide=()=>{if(document.visibilityState==="hidden")saveDraftNow()};
+  const onHide=()=>{if(document.visibilityState==="hidden")saveDraftOnExit()};
   window.addEventListener("visibilitychange",onHide);
-  window.addEventListener("pagehide",saveDraftNow);
-  return()=>{window.removeEventListener("visibilitychange",onHide);window.removeEventListener("pagehide",saveDraftNow)};
+  window.addEventListener("pagehide",saveDraftOnExit);
+  return()=>{window.removeEventListener("visibilitychange",onHide);window.removeEventListener("pagehide",saveDraftOnExit)};
  },[]);
  useEffect(()=>{const s=createClient();Promise.all([s.from("store_settings").select("whatsapp").eq("id",1).maybeSingle(),s.from("shipping_companies").select("id,name").eq("active",true).order("name"),s.from("bank_accounts").select("id,bank,account_type,account_number,holder_name,document,alias").eq("active",true).order("bank"),s.from("tigo_accounts").select("id,phone,holder_name,document").eq("active",true).order("phone"),s.from("delivery_zones").select("department,city,neighborhood,fee").eq("active",true),s.from("shipping_coverage").select("shipping_company_id,department")]).then(([settings,c,b,t,z,cov])=>{setWhatsapp(settings.data?.whatsapp||"");setShippingCompanies(c.data||[]);setBanks(b.data||[]);setTigos(t.data||[]);setZones(((z.data||[]) as any[]).map(r=>({department:r.department,city:r.city,neighborhood:r.neighborhood,fee:Number(r.fee)||0})));setZonesLoading(false);setCoverage((cov.data||[]) as any[])})},[]);
  useEffect(()=>{
