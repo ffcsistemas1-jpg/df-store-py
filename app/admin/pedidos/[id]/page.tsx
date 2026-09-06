@@ -25,6 +25,18 @@ export default function Detalle(){const p=useParams();const id=String(p.id);cons
  };
  const canSendDelivery=o.delivery_type==="delivery"&&!!deliveryWhatsapp;
  const sendToDelivery=()=>{const url=`https://wa.me/${normalizePyWhatsapp(deliveryWhatsapp)}?text=${encodeURIComponent(deliveryMessage())}`;window.open(url,"_blank")};
- return <section><div className="title"><div><small>PEDIDO #{id.slice(0,8).toUpperCase()}</small><h1>Detalle</h1></div><Link href="/admin/pedidos">← Pedidos</Link></div><div className="formgrid"><div className="panel"><h2>Cliente</h2><p><b>{o.customer?.full_name}</b></p><p>WhatsApp: {o.customer?.whatsapp}</p><p>Email: {o.customer?.email||"—"}</p><p>{o.customer?.department}, {o.customer?.city}</p><p>{o.customer?.neighborhood||""}</p><p>{o.customer?.address||"—"}</p>{o.maps_url&&<p><a href={o.maps_url} target="_blank" rel="noreferrer">📍 Ver ubicación en el mapa</a></p>}<h2>Entrega</h2><p>{o.delivery_type} · {o.shipping_company?.name||"Sin transportadora"}</p>
+ const confirmMessage=()=>[
+  `¡Hola ${o.customer?.full_name?.split(" ")[0]||""}! 👋`,
+  ``,
+  `Te escribimos de *DF Store PY* para confirmarte que tu pedido *#${id.slice(0,8).toUpperCase()}* fue recibido correctamente. ✅`,
+  ``,
+  `Nuestro equipo de logística ya lo está preparando y va a ser incluido en el reparto en el horario que corresponda según tu zona.`,
+  ``,
+  `Cualquier consulta sobre tu pedido, estamos a disposición por este mismo medio. ¡Gracias por tu compra! 🙌`,
+ ].join("\n");
+ const sendConfirmation=()=>{if(!o.customer?.whatsapp)return;const url=`https://wa.me/${normalizePyWhatsapp(o.customer.whatsapp)}?text=${encodeURIComponent(confirmMessage())}`;window.open(url,"_blank")};
+ return <section><div className="title"><div><small>PEDIDO #{id.slice(0,8).toUpperCase()}</small><h1>Detalle</h1></div><Link href="/admin/pedidos">← Pedidos</Link></div><div className="formgrid"><div className="panel"><h2>Cliente</h2><p><b>{o.customer?.full_name}</b></p><p>WhatsApp: {o.customer?.whatsapp}</p><p>Email: {o.customer?.email||"—"}</p><p>{o.customer?.department}, {o.customer?.city}</p><p>{o.customer?.neighborhood||""}</p><p>{o.customer?.address||"—"}</p>{o.maps_url&&<p><a href={o.maps_url} target="_blank" rel="noreferrer">📍 Ver ubicación en el mapa</a></p>}
+  <button type="button" className="btn secondary" disabled={!o.customer?.whatsapp} onClick={sendConfirmation}>✅ Avisar al cliente que su pedido fue recibido</button>
+  <h2>Entrega</h2><p>{o.delivery_type} · {o.shipping_company?.name||"Sin transportadora"}</p>
   {o.delivery_type==="delivery"&&(canSendDelivery?<button type="button" className="btn" onClick={sendToDelivery}>📦 Enviar pedido al delivery por WhatsApp</button>:<p className="muted">Configurá el WhatsApp de delivery en <Link href="/admin/configuracion">Configuración</Link> para poder enviar este pedido.</p>)}
   </div><div className="panel"><h2>Productos</h2>{items.map(i=><div className="checkout-total" key={i.id}><span>{i.product_name} × {i.quantity}</span><strong>{money(i.subtotal)}</strong></div>)}<div className="checkout-total"><span>Subtotal</span><strong>{money(o.subtotal)}</strong></div><div className="checkout-total"><span>Delivery</span><strong>{money(o.delivery_fee)}</strong></div><div className="checkout-total grand"><span>Total</span><strong>{money(o.total)}</strong></div><h2>Pago</h2><p>Método: <b>{o.payment_method}</b></p><p>Referencia: <b>{o.payment_reference||"No informada"}</b></p><p>Estado del pago: <b>{o.payment_verified?"VERIFICADO":"PENDIENTE DE VERIFICACIÓN"}</b></p>{o.payment_method!=="Pago al recibir"&&<button className="btn" disabled={saving} onClick={()=>verify(!o.payment_verified)}>{saving?"Guardando...":o.payment_verified?"Marcar como pendiente":"Verificar pago"}</button>}<p>Estado del pedido: <b>{o.status}</b></p></div></div></section>}

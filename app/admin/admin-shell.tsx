@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { refreshAppBadge } from "../../lib/push";
 
 const NAV: { label: string; href: string; icon: string }[] = [
   { label: "Panel principal", href: "/admin", icon: "🏠" },
@@ -29,6 +30,8 @@ const MOBILE_NAV = [
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  useEffect(()=>{ if(pathname!=="/admin/login") refreshAppBadge(); },[pathname]);
 
   if (pathname === "/admin/login") return <>{children}</>;
 

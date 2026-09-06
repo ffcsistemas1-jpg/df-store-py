@@ -24,7 +24,12 @@ self.addEventListener("push", (event) => {
     tag: data.tag || "df-store-admin",
     data: { url: data.url || "/admin/notificaciones" },
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil((async () => {
+    await self.registration.showNotification(title, options);
+    if (typeof data.badgeCount === "number" && "setAppBadge" in self.navigator) {
+      try { await self.navigator.setAppBadge(data.badgeCount); } catch {}
+    }
+  })());
 });
 
 self.addEventListener("notificationclick", (event) => {
