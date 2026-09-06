@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server";
 import { ProductManager } from "./product-manager";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
 export default async function ProductosAdmin(){
   const s=await createClient();
   const {data:{user}}=await s.auth.getUser();

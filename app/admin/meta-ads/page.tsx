@@ -3,6 +3,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../../lib/supabase/server";
 import MetaAdsDashboard from "./meta-ads-dashboard";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
 export default async function MetaAds() {
   const s = await createClient();
   const { data: { user } } = await s.auth.getUser();
