@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "../../../lib/supabase/browser";
+import { normalizePyWhatsapp } from "../../../lib/phone-py";
 
 const timeAgo=(iso:string)=>{
   const mins=Math.max(1,Math.round((Date.now()-new Date(iso).getTime())/60000));
@@ -75,7 +76,7 @@ export default function Embudo(){
    <p className="muted">Clientes que empezaron a completar sus datos en el checkout pero no llegaron a confirmar el pedido. Podés contactarlos por WhatsApp para ayudarlos a terminar la compra.</p>
    {loading?<p className="muted">Cargando...</p>:!drafts.length?<div className="empty"><h3>No hay checkouts abandonados</h3><p>Cuando alguien empiece el checkout sin terminarlo, va a aparecer acá.</p></div>:<div className="payment-list">{drafts.map(d=><div className="panel payment-row" key={d.session}>
     <div><b>{d.full_name||"Sin nombre"}</b> · {timeAgo(d.updated_at)}<br/>{d.whatsapp&&<>📱 {d.whatsapp}<br/></>}{(d.department||d.city)&&<span className="muted">{[d.city,d.department].filter(Boolean).join(", ")}<br/></span>}{d.address&&<span className="muted">{d.address}<br/></span>}{d.delivery_type&&<span className="muted">{d.delivery_type}{d.payment_method?` · ${d.payment_method}`:""}</span>}</div>
-    <div className="actions">{d.whatsapp&&<a className="btn secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${d.whatsapp.replace(/\D/g,"")}?text=${encodeURIComponent(`Hola ${d.full_name||""}! Vimos que casi completás tu compra en DF Store PY, ¿te ayudamos a terminarla?`)}`}>Contactar por WhatsApp</a>}<button className="link-btn danger" onClick={()=>discard(d.session)}>Descartar</button></div>
+    <div className="actions">{d.whatsapp&&<a className="btn secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${normalizePyWhatsapp(d.whatsapp)}?text=${encodeURIComponent(`Hola ${d.full_name||""}! Vimos que casi completás tu compra en DF Store PY, ¿te ayudamos a terminarla?`)}`}>Contactar por WhatsApp</a>}<button className="link-btn danger" onClick={()=>discard(d.session)}>Descartar</button></div>
    </div>)}</div>}
   </div>
  </section>
