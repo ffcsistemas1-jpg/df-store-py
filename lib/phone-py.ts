@@ -9,3 +9,12 @@ export function normalizePyWhatsapp(raw: string): string {
   if (digits.length === 9) return "595" + digits; // ej: 974719210
   return digits;
 }
+
+// Un celular paraguayo válido, ya normalizado, es "595" + "9" + 8 dígitos
+// (12 dígitos en total, ej: 595982625643). Sirve para avisarle al cliente en
+// el checkout si el número que escribió está incompleto o mal tipeado, antes
+// de que se guarde y de que el vendedor no pueda contactarlo después.
+export function isValidPyWhatsapp(raw: string): boolean {
+  const normalized = normalizePyWhatsapp(raw);
+  return /^5959\d{8}$/.test(normalized);
+}
