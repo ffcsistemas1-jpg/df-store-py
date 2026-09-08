@@ -24,6 +24,7 @@ type Status = {
   pixelConfigured: boolean; pixelIdMasked: string | null; capiConfigured: boolean;
   marketingConfigured: boolean; adAccountMasked: string | null; businessId: string | null;
 };
+type MetaConfig = { adAccountId: string; pageName: string; pageId: string; businessId: string };
 type Insights = { configured:boolean; connected?:boolean; period?:string; spend?:number; impressions?:number; clicks?:number; purchases?:number; purchaseValue?:number; costPerPurchase?:number; roas?:number; error?:string };
 type EventRow = { id: number; event_id: string; event_name: string; source: string; status: string; value: number | null; currency: string | null; created_at: string; utm_campaign: string | null; utm_source: string | null; utm_medium: string | null; fbclid: string | null };
 type OrderRow = { id: string; created_at: string; total: number; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; fbclid: string | null; landing_page: string | null };
@@ -35,25 +36,56 @@ export default function MetaAdsDashboard() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [config, setConfig] = useState<MetaConfig | null>(null);
+  const [configDraft, setConfigDraft] = useState({ adAccountId: "", pageName: "FFC Electronic", pageId: "" });
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configMsg, setConfigMsg] = useState("");
 
   useEffect(() => {
     (async () => {
       try {
         const s = createClient();
-        const [statusRes, insightsRes, eventsRes, ordersRes] = await Promise.all([
+        const [statusRes, insightsRes, configRes, eventsRes, ordersRes] = await Promise.all([
           fetch("/api/meta-status", {cache:"no-store"}).then((r) => r.json()).catch(() => null),
           fetch("/api/meta-insights", {cache:"no-store"}).then((r) => r.json()).catch(() => null),
+          fetch("/api/meta-config", {cache:"no-store"}).then((r) => r.json()).catch(() => null),
           s.from("meta_events_recent").select("*").limit(50),
           s.from("orders").select("id,created_at,total,utm_source,utm_medium,utm_campaign,fbclid,landing_page").order("created_at", { ascending: false }).limit(20),
         ]);
         setStatus(statusRes);
         setInsights(insightsRes);
+        if (configRes?.configured) {
+          setConfig(configRes);
+          setConfigDraft({ adAccountId: configRes.adAccountId || "", pageName: configRes.pageName || "FFC Electronic", pageId: configRes.pageId || "" });
+        }
         if (eventsRes.error) setErr(eventsRes.error.message); else setEvents((eventsRes.data || []) as EventRow[]);
         if (!ordersRes.error) setOrders((ordersRes.data || []) as OrderRow[]);
       } catch (e: any) { setErr(e?.message || "Error al cargar datos de Meta Ads."); }
       finally { setLoading(false); }
     })();
   }, []);
+
+  const saveConfig = async () => {
+    setSavingConfig(true); setConfigMsg(""); setErr("");
+    try {
+      const res = await fetch("/api/meta-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(configDraft),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "No se pudo guardar la configuración.");
+      setConfig(data);
+      setConfigDraft({ adAccountId: data.adAccountId || "", pageName: data.pageName || "FFC Electronic", pageId: data.pageId || "" });
+      setConfigMsg("✓ Configuración guardada.");
+      const [statusRes, insightsRes] = await Promise.all([
+        fetch("/api/meta-status", {cache:"no-store"}).then((r) => r.json()),
+        fetch("/api/meta-insights", {cache:"no-store"}).then((r) => r.json()),
+      ]);
+      setStatus(statusRes); setInsights(insightsRes);
+    } catch (e: any) { setConfigMsg(""); setErr(e?.message || "No se pudo guardar la configuración."); }
+    finally { setSavingConfig(false); }
+  };
 
   if (loading) return <div className="panel">Cargando estado de Meta Ads...</div>;
 
@@ -64,6 +96,20 @@ export default function MetaAdsDashboard() {
 
   return (
     <>
+      <div className="panel">
+        <h2>Configuración de Meta Ads</h2>
+        <p className="muted">Estos datos controlan la cuenta que usa el panel para consultar campañas y métricas. El token de Conversions API se mantiene en Vercel y nunca se guarda en la web.</p>
+        <div className="formgrid">
+          <div><label>Cuenta publicitaria (ID)</label><input value={configDraft.adAccountId} onChange={(e) => setConfigDraft(x => ({...x, adAccountId: e.target.value.replace(/[^0-9]/g, "")}))} placeholder="Ej. 356287048249925" /></div>
+          <div><label>Página para los anuncios</label><input value={configDraft.pageName} onChange={(e) => setConfigDraft(x => ({...x, pageName: e.target.value}))} placeholder="FFC Electronic" /></div>
+          <div><label>ID de la página (opcional)</label><input value={configDraft.pageId} onChange={(e) => setConfigDraft(x => ({...x, pageId: e.target.value.replace(/[^0-9]/g, "")}))} placeholder="ID de Facebook de FFC Electronic" /></div>
+        </div>
+        <div className="actions" style={{marginTop:12}}>
+          <button className="btn primary" onClick={saveConfig} disabled={savingConfig || !configDraft.adAccountId}>{savingConfig ? "Guardando..." : "Guardar configuración"}</button>
+          {configMsg && <span className="muted">{configMsg}</span>}
+        </div>
+        <p className="muted" style={{marginTop:12}}><b>Importante:</b> elegir FFC Electronic como identidad de la campaña se hace en Meta Ads Manager. Esta pantalla prepara la cuenta para que tu panel pueda leer sus métricas; no cambia la página seleccionada dentro de Meta.</p>
+      </div>
       <div className="adminstats">
         <div><b>Pixel</b><strong>{status?.pixelConfigured ? status.pixelIdMasked : "No configurado"}</strong></div>
         <div><b>Conversions API</b><strong>{status?.capiConfigured ? "Configurado" : "No configurado"}</strong></div>

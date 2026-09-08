@@ -15,8 +15,10 @@ export async function GET() {
   const { data: isAdmin } = await s.rpc("is_admin");
   if (!isAdmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const accountRaw = process.env.META_AD_ACCOUNT_ID || "";
-  const accountId = accountRaw.replace(/^act_/, "");
+  const { data: settings } = await s.from("store_settings")
+    .select("meta_ad_account_id").eq("id", 1).maybeSingle();
+  const accountRaw = settings?.meta_ad_account_id || process.env.META_AD_ACCOUNT_ID || "";
+  const accountId = String(accountRaw).replace(/^act_/, "");
   const token = process.env.META_MARKETING_ACCESS_TOKEN || process.env.META_CAPI_ACCESS_TOKEN || "";
   if (!accountId || !token) {
     return NextResponse.json({ configured: false, reason: "missing_ad_account_or_marketing_token" });
