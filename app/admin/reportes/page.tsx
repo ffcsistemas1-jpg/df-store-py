@@ -1,149 +1,165 @@
 "use client";
-
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "../../../lib/supabase/browser";
 
-const money = (n:number) => `₲ ${Number(n||0).toLocaleString("es-PY")}`;
-const pct = (n:number) => `${Number(n||0).toLocaleString("es-PY", {maximumFractionDigits:1})}%`;
+const money = (n: number) => `Gs. ${Math.round(Number(n || 0)).toLocaleString("es-PY")}`;
+const pct = (n: number) => `${Number(n || 0).toFixed(1).replace(".", ",")}%`;
+const dateLabel = (d: Date) => d.toLocaleDateString("es-PY", { day: "2-digit", month: "short", year: "numeric" });
 
-type Period = "7d" | "30d" | "all";
-type Order = {id:string;status:string;total:number;subtotal:number;delivery_fee:number;payment_verified:boolean;payment_method?:string|null;created_at:string};
-type Item = {order_id:string;product_id?:string|null;product_name:string;quantity:number;unit_price:number;subtotal:number};
-type Product = {id:string;name:string;stock:number;active:boolean;price:number;cost:number;image_url?:string|null};
+export default function Reportes() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [ads, setAds] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+  const [period, setPeriod] = useState<7 | 30 | 0>(7);
 
-function inPeriod(date:string, period:Period){
-  if(period==="all") return true;
-  const days=period==="7d"?7:30;
-  return new Date(date).getTime() >= Date.now()-days*86400000;
-}
+  useEffect(() => {
+    (async () => {
+      const s = createClient();
+      const [a, b, c] = await Promise.all([
+        s.from("orders").select("id,status,total,subtotal,delivery_fee,payment_verified,payment_method,created_at,utm_source,utm_medium,utm_campaign,fbclid"),
+        s.from("order_items").select("product_id,product_name,quantity,unit_price,subtotal,order_id"),
+        s.from("products").select("id,name,stock,active,price,cost"),
+      ]);
+      if (a.error || b.error || c.error) setMsg(a.error?.message || b.error?.message || c.error?.message || "No se pudieron cargar los datos.");
+      else { setOrders(a.data || []); setItems(b.data || []); setProducts(c.data || []); }
+      setLoading(false);
+    })();
+  }, []);
 
-export default function Reportes(){
- const [orders,setOrders]=useState<Order[]>([]),[items,setItems]=useState<Item[]>([]),[products,setProducts]=useState<Product[]>([]);
- const [loading,setLoading]=useState(true),[msg,setMsg]=useState(""),[period,setPeriod]=useState<Period>("7d");
- const [adSpend,setAdSpend]=useState<number|null>(null),[metaConnected,setMetaConnected]=useState(false);
+  useEffect(() => {
+    if (period === 0) { setAds(null); return; }
+    fetch(`/api/meta-insights?days=${period}`, { cache: "no-store" })
+      .then(r => r.json()).then(setAds).catch(() => setAds(null));
+  }, [period]);
 
- useEffect(()=>{(async()=>{
-   try{
-    const s=createClient();
-    const [a,b,c]=await Promise.all([
-      s.from("orders").select("id,status,total,subtotal,delivery_fee,payment_verified,payment_method,created_at"),
-      s.from("order_items").select("order_id,product_id,product_name,quantity,unit_price,subtotal"),
-      s.from("products").select("id,name,stock,active,price,cost,image_url")
-    ]);
-    if(a.error||b.error||c.error) setMsg(a.error?.message||b.error?.message||c.error?.message||"No se pudieron cargar los datos.");
-    setOrders((a.data||[]) as Order[]);setItems((b.data||[]) as Item[]);setProducts((c.data||[]) as Product[]);
-   } catch(e:any){setMsg(e?.message||"Error al cargar reportes.")}
-   finally{setLoading(false)}
- })()},[]);
+  const start = useMemo(() => period ? new Date(Date.now() - period * 86400000) : null, [period]);
+  const inPeriod = (d: string) => !start || new Date(d) >= start;
+  const validOrders = orders.filter(o => o.status !== "cancelado" && inPeriod(o.created_at));
+  const delivered = validOrders.filter(o => o.status === "entregado");
+  const validOrderIds = new Set(validOrders.map(o => o.id));
+  const periodItems = items.filter(i => validOrderIds.has(i.order_id));
+  const productMap = new Map(products.map(p => [p.id, p]));
+  const nameMap = new Map(products.map(p => [p.name, p]));
 
- useEffect(()=>{
-   let cancelled=false;
-   (async()=>{
-    const end=new Date(); const start=new Date(end);
-    if(period==="7d") start.setDate(start.getDate()-6);
-    else if(period==="30d") start.setDate(start.getDate()-29);
-    else start.setFullYear(start.getFullYear()-5);
-    const fmt=(d:Date)=>d.toISOString().slice(0,10);
-    try{
-      const r=await fetch(`/api/meta-insights?since=${fmt(start)}&until=${fmt(end)}`,{cache:"no-store"});
-      const data=await r.json();
-      if(!cancelled){setMetaConnected(Boolean(data?.connected));setAdSpend(data?.connected?Number(data.spend||0):null)}
-    }catch{if(!cancelled){setMetaConnected(false);setAdSpend(null)}}
-   })();
-   return()=>{cancelled=true};
- },[period]);
+  const sales = validOrders.reduce((n, o) => n + Number(o.subtotal || o.total || 0), 0);
+  const delivery = validOrders.reduce((n, o) => n + Number(o.delivery_fee || 0), 0);
+  const costs = periodItems.reduce((n, i) => {
+    const p = productMap.get(i.product_id) || nameMap.get(i.product_name);
+    const unitCost = Number(p?.cost || 0);
+    return n + unitCost * Number(i.quantity || 0);
+  }, 0);
+  const gross = sales - costs;
+  const adSpend = Number(ads?.spend || 0);
+  const net = gross - adSpend;
+  const units = periodItems.reduce((n, i) => n + Number(i.quantity || 0), 0);
+  const avgTicket = validOrders.length ? sales / validOrders.length : 0;
+  const grossMargin = sales ? gross / sales * 100 : 0;
+  const netMargin = sales ? net / sales * 100 : 0;
+  const adRatio = sales ? adSpend / sales * 100 : 0;
+  const pendingPayments = validOrders.filter(o => o.payment_method !== "Pago al recibir" && !o.payment_verified).length;
+  const low = products.filter(p => p.active && Number(p.stock) <= 5).sort((a, b) => Number(a.stock) - Number(b.stock));
 
- const stats=useMemo(()=>{
-   const scopedOrders=orders.filter(o=>inPeriod(o.created_at,period));
-   const valid=scopedOrders.filter(o=>String(o.status||"").toLowerCase()!=="cancelado");
-   const validIds=new Set(valid.map(o=>o.id));
-   const scopedItems=items.filter(i=>validIds.has(i.order_id));
-   const sales=valid.reduce((n,o)=>n+Number(o.subtotal||0),0);
-   const delivery=valid.reduce((n,o)=>n+Number(o.delivery_fee||0),0);
-   const productMap=new Map(products.map(p=>[p.id,p]));
-   const nameMap=new Map(products.map(p=>[p.name,p]));
-   const costs=scopedItems.reduce((n,i)=>{
-     const p=(i.product_id&&productMap.get(i.product_id))||nameMap.get(i.product_name);
-     const unitCost=Number(p?.cost||0);
-     return n+unitCost*Number(i.quantity||0);
-   },0);
-   const units=scopedItems.reduce((n,i)=>n+Number(i.quantity||0),0);
-   const gross=sales-costs;
-   const ads=adSpend??0;
-   const net=gross-ads;
-   const avg=valid.length?sales/valid.length:0;
-   const grossMargin=sales?(gross/sales)*100:0;
-   const netMargin=sales?(net/sales)*100:0;
-   const adRatio=sales?(ads/sales)*100:0;
-   const delivered=valid.filter(o=>["entregado","entregada","completado","completada"].includes(String(o.status||"").toLowerCase())).length;
-   const pendingPayments=valid.filter(o=>o.payment_method!=="Pago al recibir"&&!o.payment_verified).length;
-   const byProduct=new Map<string,{name:string,units:number,sales:number,cost:number,image?:string|null}>();
-   scopedItems.forEach(i=>{
-     const p=(i.product_id&&productMap.get(i.product_id))||nameMap.get(i.product_name);
-     const key=i.product_id||i.product_name; const row=byProduct.get(key)||{name:i.product_name,units:0,sales:0,cost:0,image:p?.image_url};
-     row.units+=Number(i.quantity||0); row.sales+=Number(i.subtotal||0); row.cost+=Number(p?.cost||0)*Number(i.quantity||0); byProduct.set(key,row);
-   });
-   const productProfit=[...byProduct.values()].map(x=>({...x,gross:x.sales-x.cost,margin:x.sales?((x.sales-x.cost)/x.sales)*100:0})).sort((a,b)=>b.gross-a.gross);
-   const counts=valid.reduce((a:any,o)=>{a[o.status]=(a[o.status]||0)+1;return a},{});
-   return {scopedOrders,valid,sales,delivery,costs,units,gross,ads,net,avg,grossMargin,netMargin,adRatio,delivered,pendingPayments,productProfit,counts};
- },[orders,items,products,period,adSpend]);
+  const byProduct = useMemo(() => {
+    const map: Record<string, any> = {};
+    periodItems.forEach(i => {
+      const p = productMap.get(i.product_id) || nameMap.get(i.product_name);
+      const key = i.product_id || i.product_name;
+      if (!map[key]) map[key] = { id: key, name: i.product_name, units: 0, sales: 0, cost: 0, ad: 0 };
+      map[key].units += Number(i.quantity || 0);
+      map[key].sales += Number(i.subtotal || 0);
+      map[key].cost += Number(p?.cost || 0) * Number(i.quantity || 0);
+    });
+    const totalAttributedSales = validOrders.filter(o => o.utm_campaign || o.utm_source || o.fbclid).reduce((n, o) => n + Number(o.subtotal || o.total || 0), 0);
+    const attributedAd = Math.min(adSpend, totalAttributedSales);
+    return Object.values(map).map((p: any) => {
+      p.ad = totalAttributedSales > 0 && attributedAd > 0 ? attributedAd * (p.sales / totalAttributedSales) : 0;
+      p.gross = p.sales - p.cost;
+      p.net = p.gross - p.ad;
+      p.margin = p.sales ? p.net / p.sales * 100 : 0;
+      return p;
+    }).sort((a: any, b: any) => b.sales - a.sales);
+  }, [periodItems, adSpend, validOrders]);
 
- const low=products.filter(p=>p.active&&Number(p.stock)<=5).sort((a,b)=>Number(a.stock)-Number(b.stock));
- const periodLabel=period==="7d"?"Últimos 7 días":period==="30d"?"Últimos 30 días":"Todo el período";
+  const orderStatus = validOrders.reduce((a, o) => { a[o.status] = (a[o.status] || 0) + 1; return a; }, {} as Record<string, number>);
+  const periodText = period === 0 ? "Todo el historial" : `Últimos ${period} días`;
 
- if(loading) return <section><div className="panel finance-loading">Cargando tu tablero financiero...</div></section>;
+  if (loading) return <section><div className="panel">Cargando finanzas...</div></section>;
 
- return <section className="finance-page">
-   <div className="title finance-title"><div><small>CONTROL DEL NEGOCIO</small><h1>Finanzas</h1><p className="muted">Una vista clara de ventas, costos, publicidad y rentabilidad.</p></div><Link href="/admin" className="finance-back">← Admin</Link></div>
-
-   <div className="finance-period-bar">
-     <div><b>Período</b><span>{periodLabel}</span></div>
-     <div className="finance-periods">
-       {([['7d','7 días'],['30d','30 días'],['all','Todo']] as [Period,string][]).map(([v,l])=><button key={v} className={period===v?'active':''} onClick={()=>setPeriod(v)}>{l}</button>)}
-     </div>
-   </div>
-
-   <div className="finance-main-grid">
-    <div className="finance-card sales-card"><span>🛍️ VENTAS DE PRODUCTOS</span><strong>{money(stats.sales)}</strong><small>{stats.valid.length} pedidos no cancelados</small></div>
-    <div className="finance-card cost-card"><span>📦 COSTO DE MERCADERÍA</span><strong>{money(stats.costs)}</strong><small>{stats.units} unidades vendidas</small></div>
-    <div className="finance-card gross-card"><span>↗ GANANCIA BRUTA</span><strong>{money(stats.gross)}</strong><small>Margen bruto: {pct(stats.grossMargin)}</small></div>
-    <div className="finance-card ad-card"><span>📣 GASTO EN PUBLICIDAD</span><strong>{adSpend===null?"—":money(stats.ads)}</strong><small>{metaConnected?`Meta Ads · ${pct(stats.adRatio)} de ventas`:`Conectá Meta Ads para traer el gasto real`}</small></div>
-   </div>
-
-   <div className="finance-net-card">
-     <div className="finance-net-head"><div><span>GANANCIA REAL (Neta)</span><small>{adSpend===null?"Sin descontar publicidad hasta conectar Meta Ads":"Ventas − mercadería − publicidad"}</small></div><strong>{money(stats.net)}</strong></div>
-     <div className="finance-net-breakdown">
-       <div><span>💰</span><b>Ventas</b><strong>{money(stats.sales)}</strong></div>
-       <div><span>📦</span><b>Costo</b><strong>{money(stats.costs)}</strong></div>
-       <div><span>📣</span><b>Publicidad</b><strong>{adSpend===null?"—":money(stats.ads)}</strong></div>
-       <div><span>🧾</span><b>Otros gastos</b><strong>₲ 0</strong></div>
-     </div>
-   </div>
-
-   <div className="finance-kpis">
-     <div><span>📦 PEDIDOS ENTREGADOS</span><b>{stats.delivered}</b></div>
-     <div><span>🛍️ UNIDADES VENDIDAS</span><b>{stats.units}</b></div>
-     <div><span>🏷️ TICKET PROMEDIO</span><b>{money(stats.avg)}</b></div>
-     <div><span>📈 % MARGEN BRUTO</span><b>{pct(stats.grossMargin)}</b></div>
-     <div><span>💚 % MARGEN NETO</span><b>{pct(stats.netMargin)}</b></div>
-     <div><span>📣 PUBLICIDAD / VENTAS</span><b>{adSpend===null?"—":pct(stats.adRatio)}</b></div>
-   </div>
-
-   <div className="finance-columns">
-    <div className="panel finance-panel">
-      <div className="finance-panel-head"><div><small>PRODUCTOS</small><h2>Rentabilidad por producto</h2></div><Link href="/admin/productos">Ver productos →</Link></div>
-      {stats.productProfit.length?<div className="profit-list">{stats.productProfit.slice(0,8).map((p,i)=><div className="profit-row" key={p.name}><div className="profit-product"><span>{i+1}</span>{p.image?<img src={p.image} alt=""/>:<i>DF</i>}<div><b>{p.name}</b><small>{p.units} unidades · ventas {money(p.sales)}</small></div></div><div className="profit-value"><strong>{money(p.gross)}</strong><small>{pct(p.margin)} margen</small></div></div>)}</div>:<p className="muted">Todavía no hay ventas en este período.</p>}
+  return <section className="finance-page">
+    <div className="title finance-title">
+      <div><small>ADMINISTRADOR</small><h1>Finanzas</h1><p className="muted">Rentabilidad real de tu tienda, ventas, costos y publicidad.</p></div>
+      <Link href="/admin">← Admin</Link>
     </div>
-    <div className="panel finance-panel">
-      <div className="finance-panel-head"><div><small>OPERACIÓN</small><h2>Estado de pedidos</h2></div></div>
-      <div className="status-list">{Object.entries(stats.counts).length?Object.entries(stats.counts).map(([k,v])=><div key={k}><span>{k}</span><strong>{String(v)}</strong></div>):<p className="muted">Sin pedidos en el período.</p>}</div>
-      <div className="finance-alerts"><div><b>Pagos pendientes</b><strong>{stats.pendingPayments}</strong></div><div><b>Stock ≤ 5</b><strong>{low.length}</strong></div></div>
+
+    <div className="finance-toolbar">
+      <div><b>Período</b><span>{periodText}{start && <> · desde {dateLabel(start)}</>}</span></div>
+      <div className="finance-periods">
+        <button className={period === 7 ? "active" : ""} onClick={() => setPeriod(7)}>7 días</button>
+        <button className={period === 30 ? "active" : ""} onClick={() => setPeriod(30)}>30 días</button>
+        <button className={period === 0 ? "active" : ""} onClick={() => setPeriod(0)}>Todo</button>
+      </div>
     </div>
-   </div>
 
-   <div className="panel finance-panel"><div className="finance-panel-head"><div><small>INVENTARIO</small><h2>Stock bajo</h2></div><Link href="/admin/productos">Gestionar →</Link></div>{low.length?<div className="low-stock-grid">{low.slice(0,10).map(p=><div key={p.id}><span>{p.image_url?<img src={p.image_url} alt=""/>:<i>DF</i>}</span><div><b>{p.name}</b><small>Stock disponible</small></div><strong>{p.stock}</strong></div>)}</div>:<p className="muted">No hay productos con stock de 5 o menos.</p>}</div>
+    <div className="finance-kpis">
+      <div className="finance-kpi"><span>🛍️</span><small>VENTAS DE PRODUCTOS</small><strong>{money(sales)}</strong></div>
+      <div className="finance-kpi"><span>📦</span><small>COSTO DE MERCADERÍA</small><strong>{money(costs)}</strong></div>
+      <div className="finance-kpi"><span>↗</span><small>GANANCIA BRUTA</small><strong>{money(gross)}</strong><em>Margen bruto: {pct(grossMargin)}</em></div>
+      <div className="finance-kpi"><span>📣</span><small>GASTO EN PUBLICIDAD</small><strong>{money(adSpend)}</strong><em>Ventas: {pct(adRatio)}</em></div>
+    </div>
 
-   {msg&&<div className="panel finance-error">⚠️ {msg}</div>}
- </section>;
+    <div className="finance-net">
+      <div><small>GANANCIA REAL (NETA)</small><strong>{money(net)}</strong><p>Ventas − costo de mercadería − publicidad</p></div>
+      <div className="finance-net-grid">
+        <div><span>💰</span><b>Ventas</b><strong>{money(sales)}</strong></div>
+        <div><span>📦</span><b>Costo</b><strong>{money(costs)}</strong></div>
+        <div><span>📣</span><b>Publicidad</b><strong>{money(adSpend)}</strong></div>
+        <div><span>🧾</span><b>Otros gastos</b><strong>{money(0)}</strong></div>
+      </div>
+    </div>
+
+    <div className="finance-metrics">
+      <div><span>📦 PEDIDOS ENTREGADOS</span><strong>{delivered.length}</strong></div>
+      <div><span>🛍️ UNIDADES VENDIDAS</span><strong>{units}</strong></div>
+      <div><span>🏷️ TICKET PROMEDIO</span><strong>{money(avgTicket)}</strong></div>
+      <div><span>% MARGEN BRUTO</span><strong>{pct(grossMargin)}</strong></div>
+      <div><span>% MARGEN NETO</span><strong>{pct(netMargin)}</strong></div>
+      <div><span>📣 PUBLICIDAD / VENTAS</span><strong>{pct(adRatio)}</strong></div>
+    </div>
+
+    <div className="formgrid finance-panels">
+      <div className="panel"><div className="section-head"><div><small>OPERACIÓN</small><h2>Estado de pedidos</h2></div><b>{validOrders.length} pedidos</b></div>
+        {Object.entries(orderStatus).map(([k,v]) => <div className="finance-row" key={k}><span>{k.replace(/^./, x => x.toUpperCase())}</span><strong>{v}</strong></div>)}
+        <div className="finance-row"><span>Pagos pendientes de verificación</span><strong>{pendingPayments}</strong></div>
+      </div>
+      <div className="panel"><div className="section-head"><div><small>INVENTARIO</small><h2>Stock bajo</h2></div><b>{low.length}</b></div>
+        {low.length ? low.map(p => <div className="finance-row" key={p.id}><span>{p.name}</span><strong>{p.stock}</strong></div>) : <p className="muted">No hay productos con stock de 5 o menos.</p>}
+      </div>
+    </div>
+
+    <div className="panel finance-product-panel">
+      <div className="section-head"><div><small>RENTABILIDAD</small><h2>Rentabilidad por producto</h2></div><span className="muted">Ventas, costo, publicidad y ganancia neta</span></div>
+      <div className="finance-product-table">
+        <div className="finance-product-head"><span>Producto</span><span>Vendidos</span><span>Venta total</span><span>Costo</span><span>Publicidad*</span><span>Ganancia real</span><span>Margen</span></div>
+        {byProduct.length ? byProduct.map((p: any) => <div className="finance-product-row" key={p.id}><b>{p.name}</b><span>{p.units}</span><span>{money(p.sales)}</span><span>{money(p.cost)}</span><span>{money(p.ad)}</span><strong>{money(p.net)}</strong><em>{pct(p.margin)}</em></div>) : <p className="muted">Todavía no hay ventas en el período seleccionado.</p>}
+      </div>
+      <p className="finance-note">* La publicidad se distribuye entre los productos vendidos en pedidos que llegaron con atribución de Meta. Es una estimación de atribución, no un gasto directo registrado por producto.</p>
+    </div>
+
+    <div className="panel finance-attribution">
+      <div className="section-head"><div><small>META ADS</small><h2>Publicidad y retorno</h2></div><span className={ads?.connected ? "status-ok" : "status-warn"}>{ads?.connected ? "● Conectado" : "● Sin datos de Meta"}</span></div>
+      <div className="finance-ads-grid">
+        <div><span>Gasto Meta</span><strong>{money(adSpend)}</strong></div>
+        <div><span>Compras atribuidas</span><strong>{Number(ads?.purchases || 0).toLocaleString("es-PY")}</strong></div>
+        <div><span>Valor de compras</span><strong>{money(ads?.purchaseValue || 0)}</strong></div>
+        <div><span>ROAS</span><strong>{Number(ads?.roas || 0).toFixed(2)}×</strong></div>
+      </div>
+      {!ads?.connected && <p className="muted">{ads?.error || "Meta todavía no devolvió métricas para este período. La aplicación no inventa datos."}</p>}
+    </div>
+
+    {msg && <div className="panel">⚠️ {msg}</div>}
+  </section>;
 }

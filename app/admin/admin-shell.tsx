@@ -15,7 +15,7 @@ const NAV: { label: string; href: string; icon: string }[] = [
   { label: "Métodos de pago", href: "/admin/pagos", icon: "💳" },
   { label: "Delivery y zonas", href: "/admin/delivery", icon: "🚚" },
   { label: "Transportadoras", href: "/admin/transportadoras", icon: "🚛" },
-  { label: "Reportes", href: "/admin/reportes", icon: "📈" },
+  { label: "Finanzas", href: "/admin/reportes", icon: "💰" },
   { label: "Notificaciones", href: "/admin/notificaciones", icon: "🔔" },
   { label: "Configuración", href: "/admin/configuracion", icon: "⚙️" },
 ];
@@ -24,7 +24,8 @@ const MOBILE_NAV = [
   { label: "Inicio", href: "/admin", icon: "🏠" },
   { label: "Pedidos", href: "/admin/pedidos", icon: "🧾" },
   { label: "Productos", href: "/admin/productos", icon: "📦" },
-  { label: "Finanzas", href: "/admin/reportes", icon: "📊" },
+  { label: "Clientes", href: "/admin/clientes", icon: "👥" },
+  { label: "Finanzas", href: "/admin/reportes", icon: "💰" },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
