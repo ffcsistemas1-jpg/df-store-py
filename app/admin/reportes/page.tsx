@@ -28,7 +28,6 @@ type ProductProfit = {
   sales: number;
   cost: number;
   gross: number;
-  net: number;
   margin: number;
 };
 
@@ -42,27 +41,49 @@ export default function Reportes() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const s = createClient();
-      const [a, b, c, m] = await Promise.all([
+      const [a, b, c] = await Promise.all([
         s.from("orders").select("id,status,total,subtotal,delivery_fee,payment_method,payment_verified,created_at").order("created_at", { ascending: false }),
         s.from("order_items").select("product_name,quantity,subtotal,order_id"),
         s.from("products").select("id,name,stock,active,price,cost"),
-        fetch("/api/meta-insights", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       const error = a.error?.message || b.error?.message || c.error?.message;
+      if (cancelled) return;
       if (error) setMsg(error);
       setOrders((a.data || []) as Order[]);
       setItems((b.data || []) as Item[]);
       setProducts((c.data || []) as Product[]);
-      setMeta(m);
       setLoading(false);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const response = await fetch(`/api/meta-insights?period=${period}`, { cache: "no-store" }).catch(() => null);
+      if (!response) {
+        if (!cancelled) setMeta(null);
+        return;
+      }
+      const data = (await response.json().catch(() => null)) as MetaInsights | null;
+      if (!cancelled) setMeta(data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [period]);
 
   const days = period === "7d" ? 7 : period === "30d" ? 30 : 0;
   const since = days ? Date.now() - days * 86400000 : 0;
-  const filteredOrders = useMemo(() => orders.filter((o) => !since || new Date(o.created_at).getTime() >= since), [orders, since]);
+  const filteredOrders = useMemo(
+    () => orders.filter((o) => !since || new Date(o.created_at).getTime() >= since),
+    [orders, since]
+  );
   const validOrders = filteredOrders.filter((o) => o.status !== "cancelado");
   const delivered = validOrders.filter((o) => o.status === "entregado");
   const validIds = new Set(validOrders.map((o) => o.id));
@@ -103,13 +124,12 @@ export default function Reportes() {
       const lineSales = Number(i.subtotal || 0);
       const unitPrice = Number(p?.price || 0);
       const lineCost = unitPrice > 0 ? lineSales * (Number(p?.cost || 0) / unitPrice) : Number(p?.cost || 0) * unitsLine;
-      const row = map[name] || { name, units: 0, sales: 0, cost: 0, gross: 0, net: 0, margin: 0 };
+      const row = map[name] || { name, units: 0, sales: 0, cost: 0, gross: 0, margin: 0 };
       row.units += unitsLine;
       row.sales += lineSales;
       row.cost += lineCost;
       row.gross = row.sales - row.cost;
       row.margin = row.sales ? (row.gross / row.sales) * 100 : 0;
-      row.net = row.gross;
       map[name] = row;
     });
     return Object.values(map).sort((a, b) => b.sales - a.sales);
