@@ -24,7 +24,7 @@ const MOBILE_NAV = [
   { label: "Inicio", href: "/admin", icon: "🏠" },
   { label: "Pedidos", href: "/admin/pedidos", icon: "🧾" },
   { label: "Productos", href: "/admin/productos", icon: "📦" },
-  { label: "Clientes", href: "/admin/clientes", icon: "👥" },
+  { label: "Finanzas", href: "/admin/reportes", icon: "📊" },
 ];
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
