@@ -3,9 +3,16 @@ import { createClient } from "../../../lib/supabase/server";
 
 const GRAPH_VERSION = "v26.0";
 
-function actionValue(list: any[] | undefined, matcher: RegExp) {
+type MetaRow = {
+  action_type?: string;
+  value?: string | number;
+};
+
+function actionValue(list: unknown, matcher: RegExp): number {
   if (!Array.isArray(list)) return 0;
-  return list.filter((x) => matcher.test(String(x?.action_type || ""))).reduce((n, x) => n + Number(x?.value || 0), 0);
+  return (list as MetaRow[])
+    .filter((x) => matcher.test(String(x?.action_type || "")))
+    .reduce((n, x) => n + Number(x?.value || 0), 0);
 }
 
 export async function GET(req: Request) {
@@ -22,7 +29,7 @@ export async function GET(req: Request) {
   const period = new URL(req.url).searchParams.get("period") || "30d";
   const datePreset = period === "7d" ? "last_7d" : period === "all" ? "maximum" : "last_30d";
 
-  if (!accountId || !token) return NextResponse.json({ configured: false, reason: "missing_ad_account_or_marketing_token" });
+  if (!accountId || !token) return NextResponse.json({ configured: false, connected: false, reason: "missing_ad_account_or_marketing_token" });
 
   const fields = "spend,impressions,clicks,actions,action_values,purchase_roas";
   const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/insights`);
@@ -41,7 +48,7 @@ export async function GET(req: Request) {
     const spend = Number(row.spend || 0);
     const roas = spend > 0 ? purchaseValue / spend : 0;
     return NextResponse.json({ configured: true, connected: true, period, spend, impressions: Number(row.impressions || 0), clicks: Number(row.clicks || 0), purchases, purchaseValue, costPerPurchase: purchases > 0 ? spend / purchases : 0, roas });
-  } catch (e: any) {
-    return NextResponse.json({ configured: true, connected: false, error: String(e?.message || e) }, { status: 502 });
+  } catch (e: unknown) {
+    return NextResponse.json({ configured: true, connected: false, error: e instanceof Error ? e.message : String(e) }, { status: 502 });
   }
 }
