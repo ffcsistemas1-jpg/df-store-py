@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./storefront-polish.css";
+import "./checkout-polish.css";
 import { CartProvider, Header, WhatsAppButton, TopBanner, MetaPixel, ServiceWorkerRegister, SiteFooter, MobileCustomerNav } from "./ui";
 
 export const metadata: Metadata = {
