@@ -2,28 +2,30 @@ import Link from "next/link";
 import { ProductCard, TrustBadges } from "./ui";
 import { getProducts, getPromotions } from "../lib/products";
 
-const categoryMeta:Record<string,{icon:string;description:string}>={
- Ropa:{icon:"👗",description:"Moda y estilo"},
- Hogar:{icon:"🏠",description:"Soluciones para casa"},
- Electro:{icon:"⚡",description:"Tecnología útil"},
- Belleza:{icon:"✨",description:"Cuidado y bienestar"},
- Herramientas:{icon:"🛠️",description:"Para tus proyectos"},
+const categoryMeta:Record<string,{label:string;icon:string;description:string;source:string}>= {
+ "Moda femenina":{label:"Moda femenina",icon:"👗",description:"Ropa y estilo para todos los días",source:"Ropa"},
+ Herramientas:{label:"Herramientas",icon:"🛠️",description:"Todo para tus proyectos",source:"Herramientas"},
+ Electrónica:{label:"Electrónica",icon:"⚡",description:"Tecnología útil para tu día a día",source:"Electro"},
+ Hogar:{label:"Hogar",icon:"🏠",description:"Soluciones prácticas para tu casa",source:"Hogar"},
+ Belleza:{label:"Belleza",icon:"✨",description:"Cuidado y bienestar",source:"Belleza"},
+ Salud:{label:"Salud",icon:"❤️",description:"Cuidado y productos para tu bienestar",source:"Salud"},
 };
+
+const categoryOrder=["Moda femenina","Herramientas","Electrónica","Hogar","Belleza","Salud"];
+
+function getCategoryProduct(products:any[], source:string){
+ return products.find(p=>String(p.category||"").trim().toLowerCase()===source.toLowerCase() && p.image_url)
+   || products.find(p=>String(p.category||"").trim().toLowerCase()===source.toLowerCase());
+}
 
 export default async function Home(){
  const ps=await getProducts();
  const promos=await getPromotions();
- const categories=Array.from(new Set(ps.map(p=>String(p.category||"").trim()).filter(Boolean)));
- const orderedCategories=[...categories].sort((a,b)=>{
-  const order=["Ropa","Hogar","Electro","Belleza","Herramientas"];
-  const ai=order.indexOf(a), bi=order.indexOf(b);
-  return (ai<0?99:ai)-(bi<0?99:bi);
+ const categoryCards=categoryOrder.map(category=>{
+  const meta=categoryMeta[category];
+  return {category,...meta,product:getCategoryProduct(ps,meta.source)};
  });
  const featured=ps.filter(p=>Number(p.stock)>0).slice(0,6);
- const categoryCards=orderedCategories.slice(0,5).map(category=>({
-  category,
-  product:ps.find(p=>String(p.category||"").trim()===category && p.image_url)||ps.find(p=>String(p.category||"").trim()===category)
- }));
  return <>
   <div className="mobile-home">
    <section className="mobile-home-search" aria-label="Buscar productos">
@@ -38,11 +40,11 @@ export default async function Home(){
     <div className="mobile-home-hero-copy">
      <small>DF STORE PY</small>
      <h1 id="mobile-home-title">Todo lo que necesitás en un solo lugar</h1>
-     <p>Moda, herramientas, tecnología, hogar y mucho más. Comprá fácil y seguro desde cualquier lugar del Paraguay.</p>
+     <p>Moda, herramientas, tecnología, hogar, belleza, salud y mucho más. Comprá fácil y seguro desde cualquier lugar del Paraguay.</p>
      <Link className="mobile-home-primary" href="/catalogo">Explorar categorías <span>→</span></Link>
      <div className="mobile-hero-mini-cats" aria-label="Categorías destacadas">
-      {categoryCards.slice(0,4).map(({category,product})=><Link key={category} href={`/catalogo?categoria=${encodeURIComponent(category)}`} aria-label={`Ver ${category}`}>
-       {product?.image_url?<img src={product.image_url} alt=""/>:<span>{categoryMeta[category]?.icon||"🛍️"}</span>}
+      {categoryCards.slice(0,4).map(({category,source,product,icon})=><Link key={category} href={`/catalogo?categoria=${encodeURIComponent(source)}`} aria-label={`Ver ${category}`}>
+       {product?.image_url?<img src={product.image_url} alt=""/>:<span>{icon}</span>}
       </Link>)}
      </div>
     </div>
@@ -54,16 +56,16 @@ export default async function Home(){
     <div><span>◇</span><strong>Compra segura</strong><small>Pedido protegido</small></div>
    </section>
 
-   {categoryCards.length>0 && <section className="mobile-home-section" aria-labelledby="mobile-categories-title">
+   <section className="mobile-home-section" aria-labelledby="mobile-categories-title">
     <div className="mobile-home-heading"><div><small>EXPLORÁ DF STORE</small><h2 id="mobile-categories-title">Nuestras categorías</h2></div><Link href="/catalogo">Ver todas →</Link></div>
     <div className="mobile-category-grid">
-     {categoryCards.map(({category,product})=>{const meta=categoryMeta[category]||{icon:"🛍️",description:"Ver productos"};return <Link className="mobile-category-card" key={category} href={`/catalogo?categoria=${encodeURIComponent(category)}`}>
-      <div className="mobile-category-image">{product?.image_url?<img src={product.image_url} alt="" loading="lazy"/>:<span>{meta.icon}</span>}</div>
-      <strong>{category}</strong><small>{meta.description}</small>
-     </Link>})}
+     {categoryCards.map(({category,source,product,icon,description})=><Link className="mobile-category-card" key={category} href={`/catalogo?categoria=${encodeURIComponent(source)}`} aria-label={`Ver productos de ${category}`}>
+      <div className="mobile-category-image">{product?.image_url?<img src={product.image_url} alt="" loading="lazy"/>:<span>{icon}</span>}</div>
+      <strong>{category}</strong><small>{description}</small>
+     </Link>)}
      <Link className="mobile-category-card offers" href="/catalogo?ofertas=1"><div className="mobile-category-image offer-icon">%</div><strong>Ofertas</strong><small>Precios especiales</small></Link>
     </div>
-   </section>}
+   </section>
 
    <section className="mobile-home-section mobile-home-products" aria-labelledby="mobile-featured-title">
     <div className="mobile-home-heading"><div><small>SELECCIONADOS PARA VOS</small><h2 id="mobile-featured-title">Productos destacados</h2></div><Link href="/catalogo">Ver más →</Link></div>
@@ -106,7 +108,7 @@ export default async function Home(){
     <div className="home-hero-side" aria-label="Beneficios principales"><div className="hero-service-card accent"><div><div className="icon" aria-hidden="true">🚚</div><strong>Pagá al recibir</strong><p>Disponible en Asunción y zonas habilitadas de Central.</p></div><small>Delivery rápido y coordinado</small></div><div className="hero-service-card"><div><div className="icon" aria-hidden="true">📦</div><strong>Envíos al interior</strong><p>Preparamos tu pedido para despacho mediante transportadora.</p></div><small>Todo Paraguay</small></div></div>
    </section>
    <section className="home-trust" aria-label="Ventajas de comprar en DF Store PY"><TrustBadges/></section>
-   {orderedCategories.length>0 && <section aria-labelledby="categorias-title"><div className="home-section-head"><div><small>EXPLORÁ LA TIENDA</small><h2 id="categorias-title">Comprá por categoría</h2><p>Encontrá más rápido lo que necesitás.</p></div><Link href="/catalogo">Ver catálogo completo →</Link></div><div className="quick-categories">{orderedCategories.slice(0,5).map(category=>{const meta=categoryMeta[category]||{icon:"🛍️",description:"Ver productos"};return <Link className="quick-category" key={category} href={`/catalogo?categoria=${encodeURIComponent(category)}`} aria-label={`Ver productos de ${category}`}><span className="qc-icon" aria-hidden="true">{meta.icon}</span><strong>{category}</strong><span>{meta.description}</span></Link>})}</div></section>}
+   <section aria-labelledby="categorias-title"><div className="home-section-head"><div><small>EXPLORÁ LA TIENDA</small><h2 id="categorias-title">Comprá por categoría</h2><p>Encontrá más rápido lo que necesitás.</p></div><Link href="/catalogo">Ver catálogo completo →</Link></div><div className="quick-categories">{categoryCards.map(({category,source,icon,description})=><Link className="quick-category" key={category} href={`/catalogo?categoria=${encodeURIComponent(source)}`} aria-label={`Ver productos de ${category}`}><span className="qc-icon" aria-hidden="true">{icon}</span><strong>{category}</strong><span>{description}</span></Link>)}</div></section>
    <section aria-labelledby="destacados-title"><div className="home-section-head"><div><small>LOS MÁS DESTACADOS</small><h2 id="destacados-title">Productos para vos</h2><p>Disponibilidad y precio visibles antes de comprar.</p></div><Link href="/catalogo">Ver todos →</Link></div><div className="home-product-grid">{featured.map(p=><ProductCard key={p.id} p={p}/>)}</div></section>
    {promos.length>0 && <section aria-labelledby="promos-title"><div className="home-section-head"><div><small>OPORTUNIDADES</small><h2 id="promos-title">Promociones de la semana</h2><p>Ofertas sujetas a stock.</p></div><Link href="/catalogo">Ver todas →</Link></div><div className="home-promos">{promos.slice(0,4).map(promo=><article className="home-promo" key={promo.id}>{promo.image_url&&<img src={promo.image_url} alt="" loading="lazy"/>}<div className="home-promo-content">{promo.badge&&<small>{promo.badge}</small>}<h3>{promo.title}</h3>{promo.description&&<p>{promo.description}</p>}{promo.price_text&&<strong>{promo.price_text}</strong>}<div><Link className="btn" href={promo.category?`/catalogo?categoria=${encodeURIComponent(promo.category)}`:"/catalogo"}>{promo.cta_text||"Ver productos"} →</Link></div></div></article>)}</div></section>}
    <section aria-label="Opciones de compra" className="home-benefits"><div className="home-benefit"><span className="icon" aria-hidden="true">🚚</span><b>Delivery</b><span>Asunción y Central en zonas habilitadas.</span></div><div className="home-benefit"><span className="icon" aria-hidden="true">📦</span><b>Envíos al interior</b><span>Despacho por transportadora.</span></div><div className="home-benefit"><span className="icon" aria-hidden="true">💳</span><b>Formas de pago</b><span>Recibir, transferencia o Giro Tigo.</span></div><div className="home-benefit"><span className="icon" aria-hidden="true">💬</span><b>Atención directa</b><span>Te ayudamos por WhatsApp.</span></div></section>
