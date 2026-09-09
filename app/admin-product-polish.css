@@ -1,0 +1,31 @@
+/* DF Store PY — estilos del formulario de productos. Solo presentación. */
+.product-form-pro{display:flex;flex-direction:column;gap:18px;margin-top:20px}
+.product-form-pro>label,.product-form-pro .twocol>label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:800;color:#21171a}
+.product-form-pro input,.product-form-pro select,.product-form-pro textarea{width:100%;box-sizing:border-box;border:1px solid #d8cdcf;border-radius:11px;background:#fff;color:#21171a;padding:12px 14px;font:inherit;outline:none;transition:border-color .18s,box-shadow .18s}
+.product-form-pro input:focus,.product-form-pro select:focus,.product-form-pro textarea:focus{border-color:#98234d;box-shadow:0 0 0 4px rgba(152,35,77,.10)}
+.product-form-pro textarea{min-height:105px;resize:vertical;line-height:1.5}
+.product-form-pro .twocol{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.product-form-pro .media-upload-zone{margin-top:4px;border:1px solid #e7dfe0;background:#faf7f5;border-radius:17px;padding:20px}
+.product-form-pro .media-upload-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:15px}
+.product-form-pro .media-upload-head small{display:block;color:#98234d;letter-spacing:1.6px;font-weight:900}
+.product-form-pro .media-upload-head h3{margin:5px 0 4px;font-size:20px}
+.product-form-pro .media-upload-head p{margin:0;color:#71686a;font-size:13px;line-height:1.45}
+.product-form-pro .media-upload-head>b{min-width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#f5e7ed;color:#98234d}
+.product-form-pro .upload{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:105px;border:1.5px dashed #cbbbc0;border-radius:13px;background:#fff;color:#98234d;font-weight:900;text-align:center;cursor:pointer;padding:15px}
+.product-form-pro .upload:hover{border-color:#98234d;background:#fff9fb}
+.product-form-pro .upload input{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;opacity:0!important;cursor:pointer!important;padding:0!important;border:0!important}
+.product-form-pro .upload span{color:#71686a;font-size:12px;font-weight:500}
+.product-form-pro .media-upload-list{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.product-form-pro .media-upload-item{display:grid;grid-template-columns:38px minmax(0,1fr) 32px;align-items:center;gap:10px;background:#fff;border:1px solid #e7dfe0;border-radius:12px;padding:10px 12px}
+.product-form-pro .media-upload-icon{font-size:20px;text-align:center}
+.product-form-pro .media-upload-info{min-width:0;display:flex;flex-direction:column;gap:3px}
+.product-form-pro .media-upload-info b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.product-form-pro .media-upload-info small{color:#71686a;font-size:11px}
+.product-form-pro .media-upload-item>button{border:0;background:#f7eef1;color:#98234d;border-radius:8px;width:30px;height:30px;font-size:20px;cursor:pointer}
+.product-form-pro .upload-progress{height:5px;background:#eee7e8;border-radius:999px;overflow:hidden;margin:3px 0}
+.product-form-pro .upload-progress i{display:block;height:100%;background:#98234d;border-radius:999px}
+.product-form-pro .media-upload-summary{display:flex;justify-content:space-between;gap:12px;padding:13px 15px;background:#faf7f5;border:1px solid #e7dfe0;border-radius:11px;color:#71686a;font-size:13px}
+.product-form-pro .media-upload-summary b{color:#21171a}
+.product-form-pro>.btn{align-self:flex-start;margin-top:0;min-width:190px}
+.product-form-message{margin:0;padding:12px 14px;border-radius:11px;background:#f8edf2;color:#6a2038;font-weight:700}
+@media(max-width:700px){.product-form-pro .twocol{grid-template-columns:1fr}.product-form-pro .media-upload-zone{padding:15px}.product-form-pro>.btn{width:100%}}
