@@ -25,7 +25,7 @@ export default async function Home(){
   const meta=categoryMeta[category];
   return {category,...meta,product:getCategoryProduct(ps,meta.source)};
  });
- const featured=ps.filter(p=>Number(p.stock)>0).slice(0,6);
+ const featured=ps.filter(p=>Number(p.stock)>0).slice(0,8);
  return <>
   <div className="mobile-home">
    <section className="mobile-home-search" aria-label="Buscar productos">
@@ -104,13 +104,36 @@ export default async function Home(){
 
   <div className="desktop-home home-page">
    <section className="home-hero" aria-labelledby="home-title">
-    <div className="home-hero-main"><div><small>DF STORE PY · TODO PARAGUAY</small><h1 id="home-title">Todo lo que buscás, en un solo lugar.</h1><p>Moda, hogar y productos seleccionados con compra simple, atención humana y opciones de entrega para Asunción, Central e interior.</p><div className="home-hero-actions"><Link className="btn" href="/catalogo">Ver catálogo</Link><Link className="btn secondary" href="/catalogo?ofertas=1">Ver ofertas</Link></div></div></div>
-    <div className="home-hero-side" aria-label="Beneficios principales"><div className="hero-service-card accent"><div><div className="icon" aria-hidden="true">🚚</div><strong>Pagá al recibir</strong><p>Disponible en Asunción y zonas habilitadas de Central.</p></div><small>Delivery rápido y coordinado</small></div><div className="hero-service-card"><div><div className="icon" aria-hidden="true">📦</div><strong>Envíos al interior</strong><p>Preparamos tu pedido para despacho mediante transportadora.</p></div><small>Todo Paraguay</small></div></div>
+    <div className="home-hero-main">
+     <div className="home-hero-copy">
+      <small>DF STORE PY · TODO PARAGUAY</small>
+      <h1 id="home-title">Todo lo que necesitás en un solo lugar</h1>
+      <p>Moda, herramientas, tecnología, hogar y mucho más. Comprá fácil y seguro desde cualquier lugar del Paraguay.</p>
+      <div className="home-hero-actions"><Link className="btn" href="/catalogo">Explorar categorías →</Link><Link className="btn secondary" href="/catalogo?ofertas=1">Ver ofertas</Link></div>
+     </div>
+     <div className="home-hero-gallery" aria-label="Productos destacados">
+      {categoryCards.slice(0,4).map(({category,source,product,icon})=><Link key={category} href={`/catalogo?categoria=${encodeURIComponent(source)}`} aria-label={`Explorar ${category}`}>
+       {product?.image_url?<img src={product.image_url} alt=""/>:<span aria-hidden="true">{icon}</span>}
+      </Link>)}
+     </div>
+    </div>
    </section>
    <section className="home-trust" aria-label="Ventajas de comprar en DF Store PY"><TrustBadges/></section>
-   <section aria-labelledby="categorias-title"><div className="home-section-head"><div><small>EXPLORÁ LA TIENDA</small><h2 id="categorias-title">Comprá por categoría</h2><p>Encontrá más rápido lo que necesitás.</p></div><Link href="/catalogo">Ver catálogo completo →</Link></div><div className="quick-categories">{categoryCards.map(({category,source,icon,description})=><Link className="quick-category" key={category} href={`/catalogo?categoria=${encodeURIComponent(source)}`} aria-label={`Ver productos de ${category}`}><span className="qc-icon" aria-hidden="true">{icon}</span><strong>{category}</strong><span>{description}</span></Link>)}</div></section>
-   <section aria-labelledby="destacados-title"><div className="home-section-head"><div><small>LOS MÁS DESTACADOS</small><h2 id="destacados-title">Productos para vos</h2><p>Disponibilidad y precio visibles antes de comprar.</p></div><Link href="/catalogo">Ver todos →</Link></div><div className="home-product-grid">{featured.map(p=><ProductCard key={p.id} p={p}/>)}</div></section>
-   {promos.length>0 && <section aria-labelledby="promos-title"><div className="home-section-head"><div><small>OPORTUNIDADES</small><h2 id="promos-title">Promociones de la semana</h2><p>Ofertas sujetas a stock.</p></div><Link href="/catalogo">Ver todas →</Link></div><div className="home-promos">{promos.slice(0,4).map(promo=><article className="home-promo" key={promo.id}>{promo.image_url&&<img src={promo.image_url} alt="" loading="lazy"/>}<div className="home-promo-content">{promo.badge&&<small>{promo.badge}</small>}<h3>{promo.title}</h3>{promo.description&&<p>{promo.description}</p>}{promo.price_text&&<strong>{promo.price_text}</strong>}<div><Link className="btn" href={promo.category?`/catalogo?categoria=${encodeURIComponent(promo.category)}`:"/catalogo"}>{promo.cta_text||"Ver productos"} →</Link></div></div></article>)}</div></section>}
+   <section aria-labelledby="categorias-title">
+    <div className="home-section-head"><div><small>EXPLORÁ DF STORE</small><h2 id="categorias-title">Nuestras categorías</h2><p>Encontrá más rápido lo que necesitás.</p></div><Link href="/catalogo">Ver todas →</Link></div>
+    <div className="quick-categories">
+     {categoryCards.map(({category,source,icon,description,product})=><Link className="quick-category" key={category} href={`/catalogo?categoria=${encodeURIComponent(source)}`} aria-label={`Ver productos de ${category}`}>
+      <div className="qc-image">{product?.image_url?<img src={product.image_url} alt="" loading="lazy"/>:<span aria-hidden="true">{icon}</span>}</div>
+      <strong>{category}</strong><span>{description}</span>
+     </Link>)}
+     <Link className="quick-category quick-category-offers" href="/catalogo?ofertas=1" aria-label="Ver ofertas"><div className="qc-image offer-mark">%</div><strong>Ofertas</strong><span>Precios especiales</span></Link>
+    </div>
+   </section>
+   <section aria-labelledby="destacados-title">
+    <div className="home-section-head"><div><small>SELECCIONADOS PARA VOS</small><h2 id="destacados-title">Productos destacados</h2><p>Precio y disponibilidad visibles antes de comprar.</p></div><Link href="/catalogo">Ver catálogo completo →</Link></div>
+    <div className="home-product-grid">{featured.map(p=><ProductCard key={p.id} p={p}/>)}</div>
+   </section>
+   {promos.length>0 && <section aria-labelledby="promos-title"><div className="home-section-head"><div><small>OPORTUNIDADES</small><h2 id="promos-title">Promociones de la semana</h2><p>Ofertas sujetas a stock.</p></div><Link href="/catalogo?ofertas=1">Ver todas →</Link></div><div className="home-promos">{promos.slice(0,4).map(promo=><article className="home-promo" key={promo.id}>{promo.image_url&&<img src={promo.image_url} alt="" loading="lazy"/>}<div className="home-promo-content">{promo.badge&&<small>{promo.badge}</small>}<h3>{promo.title}</h3>{promo.description&&<p>{promo.description}</p>}{promo.price_text&&<strong>{promo.price_text}</strong>}<div><Link className="btn" href={promo.category?`/catalogo?categoria=${encodeURIComponent(promo.category)}`:"/catalogo"}>{promo.cta_text||"Ver productos"} →</Link></div></div></article>)}</div></section>}
    <section aria-label="Opciones de compra" className="home-benefits"><div className="home-benefit"><span className="icon" aria-hidden="true">🚚</span><b>Delivery</b><span>Asunción y Central en zonas habilitadas.</span></div><div className="home-benefit"><span className="icon" aria-hidden="true">📦</span><b>Envíos al interior</b><span>Despacho por transportadora.</span></div><div className="home-benefit"><span className="icon" aria-hidden="true">💳</span><b>Formas de pago</b><span>Recibir, transferencia o Giro Tigo.</span></div><div className="home-benefit"><span className="icon" aria-hidden="true">💬</span><b>Atención directa</b><span>Te ayudamos por WhatsApp.</span></div></section>
    <section className="home-steps" aria-labelledby="pasos-title"><div className="home-section-head"><div><small>SIMPLE Y RÁPIDO</small><h2 id="pasos-title">Comprar es muy fácil</h2><p>Cuatro pasos, sin vueltas.</p></div></div><div className="home-step-grid"><div className="home-step"><b>01</b><h3>Elegí</h3><p>Buscá por categoría o usá el buscador.</p></div><div className="home-step"><b>02</b><h3>Agregá</h3><p>Elegí la cantidad y agregá al carrito.</p></div><div className="home-step"><b>03</b><h3>Confirmá</h3><p>Completá tus datos y seleccioná la entrega.</p></div><div className="home-step"><b>04</b><h3>Recibí</h3><p>Coordinamos la entrega y el pago según tu zona.</p></div></div></section>
    <section className="home-trust-panel" aria-labelledby="confianza-title"><div><small>COMPRÁ CON CONFIANZA</small><h2 id="confianza-title">Una tienda pensada para comprar fácil.</h2><p>Mostramos información útil antes de pedir: precio, stock, modalidad de entrega, formas de pago y atención directa.</p><Link className="btn" href="/catalogo">Elegir productos</Link></div><div className="home-checks"><div><span>✓</span>Precios en guaraníes</div><div><span>✓</span>Stock visible</div><div><span>✓</span>Entrega clara antes de confirmar</div><div><span>✓</span>Soporte por WhatsApp</div></div></section>
