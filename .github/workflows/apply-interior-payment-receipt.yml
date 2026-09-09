@@ -1,0 +1,140 @@
+name: Apply interior payment receipt flow
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch checkout, admin and Supabase migration
+        shell: python
+        run: |
+          from pathlib import Path
+
+          checkout = Path('app/checkout/page.tsx')
+          s = checkout.read_text()
+
+          old = 'const [paymentReference, setPaymentReference] = useState("");\n  const [whatsapp, setWhatsapp] = useState("");'
+          new = '''const [paymentReference, setPaymentReference] = useState("");
+  const [paymentReceiptFile, setPaymentReceiptFile] = useState<File | null>(null);
+  const [paymentReceiptPath, setPaymentReceiptPath] = useState("");
+  const [whatsapp, setWhatsapp] = useState("");'''
+          assert old in s, 'checkout state anchor not found'
+          s = s.replace(old, new, 1)
+
+          old = 'const setDeliveryCity = (v: string) => { const dep = DELIVERY_CITY_DEPARTMENT[v] || ""; setForm(x => ({ ...x, city: v, department: dep, neighborhood: "", shipping_company_id: "", shipping_company_other: "" })); };'
+          new = old + '''
+  const handlePaymentReceipt = (file: File | null) => {
+    if (!file) { setPaymentReceiptFile(null); setPaymentReceiptPath(""); return; }
+    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (!allowed.includes(file.type)) { setMsg("El comprobante debe ser una imagen JPG, PNG, WEBP o un PDF."); return; }
+    if (file.size > 5 * 1024 * 1024) { setMsg("El comprobante no puede superar los 5 MB."); return; }
+    setPaymentReceiptFile(file); setPaymentReceiptPath(""); setMsg("");
+  };
+  const uploadPaymentReceipt = async (s: ReturnType<typeof createClient>) => {
+    if (form.delivery_type !== "interior") return null;
+    if (paymentReceiptPath) return paymentReceiptPath;
+    if (!paymentReceiptFile) throw new Error("Adjuntá el comprobante de pago para continuar con el envío al interior.");
+    const session = (sessionRef.current || getCartSession()).replace(/[^a-zA-Z0-9_-]/g, "");
+    const ext = (paymentReceiptFile.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const suffix = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const path = `checkout/${session}/${suffix}.${ext}`;
+    const { error } = await s.storage.from("comprobantes").upload(path, paymentReceiptFile, { upsert: false, contentType: paymentReceiptFile.type });
+    if (error) throw new Error("No pudimos subir el comprobante. Revisá el archivo e intentá nuevamente.");
+    setPaymentReceiptPath(path);
+    return path;
+  };'''
+          assert old in s, 'checkout helper anchor not found'
+          s = s.replace(old, new, 1)
+
+          old = 'setForm(x => ({ ...x, delivery_type: "interior", payment_method: "Transferencia", shipping_company_id: "", department: "", city: "", neighborhood: "" }))'
+          assert old in s, 'interior default anchor not found'
+          # Keep any existing interior default behavior unchanged.
+
+          old = '''  async function submit() {
+    if (busy || order) return;
+    setBusy(true); setMsg("");
+    try {
+      const s = createClient();
+      const attribution = getAttribution();'''
+          new = '''  async function submit() {
+    if (busy || order) return;
+    setBusy(true); setMsg("");
+    let uploadedReceiptPath = "";
+    try {
+      const s = createClient();
+      const attribution = getAttribution();
+      if (form.delivery_type === "interior") {
+        uploadedReceiptPath = (await uploadPaymentReceipt(s)) || "";
+        if (!uploadedReceiptPath) throw new Error("Adjuntá el comprobante de pago para continuar.");
+      }'''
+          assert old in s, 'submit anchor not found'
+          s = s.replace(old, new, 1)
+
+          old = 'p_payment_reference: paymentReference.trim() || null,\n        p_attribution: { ...attribution, event_id: purchaseEventId }'
+          new = 'p_payment_reference: paymentReference.trim() || null,\n        p_transfer_receipt_url: uploadedReceiptPath || null,\n        p_attribution: { ...attribution, event_id: purchaseEventId }'
+          assert old in s, 'rpc payment anchor not found'
+          s = s.replace(old, new, 1)
+
+          old = '''    } catch (e: any) {
+      setMsg(e?.message || "No se pudo registrar el pedido.");
+    } finally { setBusy(false); }'''
+          new = '''    } catch (e: any) {
+      if (uploadedReceiptPath) { try { await createClient().storage.from("comprobantes").remove([uploadedReceiptPath]); } catch {} }
+      setMsg(e?.message || "No se pudo registrar el pedido.");
+    } finally { setBusy(false); }'''
+          assert old in s, 'submit catch anchor not found'
+          s = s.replace(old, new, 1)
+
+          old = '''    {step === 3 && <div className="checkout-panel panel"><h2>💳 Forma de pago</h2><label>Método de pago<select value={form.payment_method} onChange={e => set("payment_method", e.target.value)} disabled={form.delivery_type === "delivery"}><option value="Pago al recibir">Pago al recibir</option><option value="Transferencia">Transferencia bancaria</option><option value="Giro Tigo">Giro Tigo</option></select><small className="field-optional">{form.delivery_type === "delivery" ? "En Asunción y Central el pago es al recibir." : "Para envíos al interior podés elegir transferencia bancaria o Giro Tigo."}</small></label>'''
+          new = '''    {step === 3 && <div className="checkout-panel panel"><h2>💳 Forma de pago</h2><label>Método de pago<select value={form.payment_method} onChange={e => set("payment_method", e.target.value)} disabled={form.delivery_type === "delivery"}><option value="Pago al recibir">Pago al recibir</option><option value="Transferencia">Transferencia bancaria</option><option value="Giro Tigo">Giro Tigo</option></select><small className="field-optional">{form.delivery_type === "delivery" ? "En Asunción y Central el pago es al recibir." : "Para envíos al interior el pago del producto es anticipado. El transporte se abona directamente a la transportadora."}</small></label>
+      {form.delivery_type === "interior" && <div className="payment-receipt-box"><div><h3>📎 Comprobante de pago <span>*</span></h3><p>Adjuntá la captura o comprobante de tu transferencia/Giro Tigo. Es necesario para finalizar el pedido.</p><small>JPG, PNG, WEBP o PDF · máximo 5 MB</small></div><label className="payment-receipt-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={e => handlePaymentReceipt(e.target.files?.[0] || null)} /><span>📎 {paymentReceiptFile ? "Cambiar comprobante" : "Adjuntar comprobante"}</span></label>{paymentReceiptFile && <div className="payment-receipt-selected">✓ {paymentReceiptFile.name} · {(paymentReceiptFile.size / 1024 / 1024).toFixed(2)} MB</div>}</div>}'''
+          assert old in s, 'step 3 anchor not found'
+          s = s.replace(old, new, 1)
+
+          checkout.write_text(s)
+
+          admin = Path('app/admin/pedidos/[id]/page.tsx')
+          a = admin.read_text()
+          old = 'const [o,setO]=useState<any>(null),[items,setItems]=useState<any[]>([]),[loading,setLoading]=useState(true),[msg,setMsg]=useState(""),[saving,setSaving]=useState(false),[deliveryWhatsapp,setDeliveryWhatsapp]=useState("");'
+          new = old + ' const [receiptUrl,setReceiptUrl]=useState("");'
+          assert old in a, 'admin state anchor not found'
+          a = a.replace(old, new, 1)
+          old = 'else{setO({...a.data,customer:a.data.customers,shipping_company:a.data.shipping_companies});setItems(b.data||[])}setDeliveryWhatsapp(c.data?.whatsapp_delivery||"");setLoading(false)'
+          new = '''else{setO({...a.data,customer:a.data.customers,shipping_company:a.data.shipping_companies});setItems(b.data||[]);if(a.data.transfer_receipt_url){const {data:signed}=await s.storage.from("comprobantes").createSignedUrl(a.data.transfer_receipt_url,600);setReceiptUrl(signed?.signedUrl||"")}}setDeliveryWhatsapp(c.data?.whatsapp_delivery||"");setLoading(false)'''
+          assert old in a, 'admin load anchor not found'
+          a = a.replace(old, new, 1)
+          old = '<p>Referencia: <b>{o.payment_reference||"No informada"}</b></p><p>Estado del pago:'
+          new = '<p>Referencia: <b>{o.payment_reference||"No informada"}</b></p>{o.transfer_receipt_url&&<div className="payment-receipt-admin"><p><b>📎 Comprobante:</b> {receiptUrl?<a href={receiptUrl} target="_blank" rel="noreferrer">Ver comprobante</a>:"Generando enlace seguro..."}</p></div>}<p>Estado del pago:'
+          assert old in a, 'admin receipt anchor not found'
+          a = a.replace(old, new, 1)
+          admin.write_text(a)
+
+          css = Path('app/checkout-polish.css')
+          c = css.read_text()
+          c += '''\n\n/* DF Store PY — comprobante obligatorio para envíos al interior. */\n.payment-receipt-box{margin:14px 0;padding:14px;border:1px solid rgba(123,29,51,.18);border-radius:12px;background:#fff8fa}.payment-receipt-box h3{margin:0 0 4px;font-size:15px}.payment-receipt-box h3 span{color:#b42318}.payment-receipt-box p{margin:0 0 5px;font-size:13px;line-height:1.45}.payment-receipt-box small{display:block;color:#666}.payment-receipt-upload{display:inline-flex;align-items:center;justify-content:center;margin-top:10px;min-height:42px;padding:0 14px;border:1px solid rgba(123,29,51,.28);border-radius:9px;background:#fff;font-weight:700;cursor:pointer}.payment-receipt-upload input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}.payment-receipt-upload:hover{background:#faf5f6}.payment-receipt-selected{margin-top:8px;font-size:12px;font-weight:700;color:#176b3a;overflow-wrap:anywhere}.payment-receipt-admin{margin:8px 0}.payment-receipt-admin a{font-weight:700}\n'''
+          css.write_text(c)
+
+          migration = Path('supabase/PATCH-COMPROBANTE-INTERIOR.sql')
+          migration.write_text('''-- DF Store PY — comprobante obligatorio para envíos al interior.\n-- Ejecutar una sola vez en Supabase SQL Editor.\n\ninsert into storage.buckets(id,name,public) values ('comprobantes','comprobantes',false)\non conflict (id) do update set public=false;\n\ndrop policy if exists "anon upload checkout receipts" on storage.objects;\ncreate policy "anon upload checkout receipts" on storage.objects\nfor insert to anon, authenticated\nwith check (bucket_id='comprobantes' and name like 'checkout/%');\n\ndrop policy if exists "admin read checkout receipts" on storage.objects;\ncreate policy "admin read checkout receipts" on storage.objects\nfor select to authenticated\nusing (bucket_id='comprobantes' and public.is_admin());\n\ndrop policy if exists "admin delete checkout receipts" on storage.objects;\ncreate policy "admin delete checkout receipts" on storage.objects\nfor delete to authenticated\nusing (bucket_id='comprobantes' and public.is_admin());\n\n-- Eliminamos las firmas antiguas para que no exista una ruta que permita\n-- cerrar un pedido del interior sin comprobante.\ndrop function if exists public.create_order(jsonb,jsonb,text,text,uuid,text);\ndrop function if exists public.create_order(jsonb,jsonb,text,text,uuid,text,jsonb);\n\ncreate or replace function public.create_order(\n p_customer jsonb,\n p_items jsonb,\n p_delivery_type text default 'delivery',\n p_payment_method text default 'Pago al recibir',\n p_shipping_company_id uuid default null,\n p_payment_reference text default null,\n p_transfer_receipt_url text default null,\n p_attribution jsonb default '{}'::jsonb\n) returns jsonb\nlanguage plpgsql security definer set search_path=public\nas $$\ndeclare\n v_customer_id uuid; v_order_id uuid; v_subtotal numeric(12,0):=0; v_delivery_fee numeric(12,0):=0;\n v_qty integer; v_product products%rowtype; v_item jsonb; v_zone delivery_zones%rowtype; v_event_id text;\nbegin\n if jsonb_typeof(p_items)<>'array' or jsonb_array_length(p_items)=0 then raise exception 'El carrito está vacío'; end if;\n if coalesce(trim(p_customer->>'full_name'),'')='' or coalesce(trim(p_customer->>'whatsapp'),'')='' then raise exception 'Nombre y WhatsApp son obligatorios'; end if;\n if p_delivery_type not in ('delivery','interior','retiro') then raise exception 'Tipo de entrega inválido'; end if;\n if p_delivery_type in ('delivery','interior') and (coalesce(trim(p_customer->>'department'),'')='' or coalesce(trim(p_customer->>'city'),'')='') then raise exception 'Departamento y ciudad son obligatorios'; end if;\n if p_delivery_type<>'retiro' and coalesce(trim(p_customer->>'address'),'')='' then raise exception 'La dirección es obligatoria para el envío'; end if;\n if p_payment_method not in ('Pago al recibir','Transferencia','Giro Tigo') then raise exception 'Método de pago inválido'; end if;\n if p_delivery_type='delivery' and p_payment_method<>'Pago al recibir' then raise exception 'En delivery local el pago es al recibir'; end if;\n if p_delivery_type='interior' and p_payment_method not in ('Transferencia','Giro Tigo') then raise exception 'Para envíos al interior el pago es anticipado por transferencia o Giro Tigo'; end if;\n if p_payment_method in ('Transferencia','Giro Tigo') and p_payment_reference is not null and length(trim(p_payment_reference))>200 then raise exception 'Referencia de pago demasiado larga'; end if;\n if p_delivery_type='interior' and coalesce(trim(p_transfer_receipt_url),'')='' then raise exception 'Adjuntá el comprobante de pago para finalizar el envío al interior'; end if;\n if p_delivery_type='interior' and p_transfer_receipt_url not like 'checkout/%' then raise exception 'Comprobante de pago inválido'; end if;\n if p_delivery_type='interior' then\n   if p_shipping_company_id is not null and not exists(select 1 from shipping_companies where id=p_shipping_company_id and active=true) then raise exception 'Transportadora no disponible'; end if;\n elsif p_shipping_company_id is not null then raise exception 'Transportadora no corresponde a este tipo de entrega'; end if;\n if p_delivery_type='delivery' then\n   select * into v_zone from delivery_zones\n   where active=true and lower(trim(department))=lower(trim(p_customer->>'department'))\n     and (city is null or lower(trim(city))=lower(trim(p_customer->>'city')))\n     and (neighborhood is null or lower(trim(neighborhood))=lower(trim(coalesce(p_customer->>'neighborhood',''))))\n   order by (case when neighborhood is not null then 3 else 0 end + case when city is not null then 2 else 0 end) desc,id limit 1;\n   if found then v_delivery_fee:=coalesce(v_zone.fee,0); else raise exception 'No tenemos delivery configurado para esa zona.'; end if;\n end if;\n insert into customers(full_name,whatsapp,email,ruc,business_name,department,city,neighborhood,address)\n values(trim(p_customer->>'full_name'),trim(p_customer->>'whatsapp'),nullif(trim(p_customer->>'email'),''),nullif(trim(p_customer->>'ruc'),''),nullif(trim(p_customer->>'business_name'),''),nullif(trim(p_customer->>'department'),''),nullif(trim(p_customer->>'city'),''),nullif(trim(p_customer->>'neighborhood'),''),nullif(trim(p_customer->>'address'),'')) returning id into v_customer_id;\n v_event_id:=nullif(trim(p_attribution->>'event_id'),'');\n insert into orders(customer_id,status,delivery_type,payment_method,payment_reference,shipping_company_id,subtotal,delivery_fee,total,transfer_receipt_url,utm_source,utm_medium,utm_campaign,utm_content,utm_term,fbclid,fbp,fbc,landing_page,event_id)\n values(v_customer_id,case when p_delivery_type='interior' then 'esperando_comprobante' else 'nuevo' end,p_delivery_type,p_payment_method,nullif(trim(p_payment_reference),''),p_shipping_company_id,0,v_delivery_fee,0,nullif(trim(p_transfer_receipt_url),''),nullif(trim(p_attribution->>'utm_source'),''),nullif(trim(p_attribution->>'utm_medium'),''),nullif(trim(p_attribution->>'utm_campaign'),''),nullif(trim(p_attribution->>'utm_content'),''),nullif(trim(p_attribution->>'utm_term'),''),nullif(trim(p_attribution->>'fbclid'),''),nullif(trim(p_attribution->>'fbp'),''),nullif(trim(p_attribution->>'fbc'),''),nullif(trim(p_attribution->>'landing_page'),''),v_event_id)\n returning id into v_order_id;\n update orders set delivery_note=nullif(trim(p_customer->>'note'),''), preferred_time=nullif(trim(p_customer->>'preferred_time'),''), invoice_requested=coalesce((p_customer->>'invoice_requested')::boolean,false), maps_url=nullif(trim(p_customer->>'maps_url'),'') where id=v_order_id;\n for v_item in select * from jsonb_array_elements(p_items) loop\n   v_qty:=floor(coalesce((v_item->>'quantity')::numeric,0)); if v_qty<1 then raise exception 'Cantidad inválida'; end if;\n   select * into v_product from products where id=(v_item->>'id')::uuid and active=true for update;\n   if not found then raise exception 'Producto no disponible'; end if;\n   if v_product.stock<v_qty then raise exception 'Stock insuficiente para: %',v_product.name; end if;\n   insert into order_items(order_id,product_id,product_name,quantity,unit_price,subtotal) values(v_order_id,v_product.id,v_product.name,v_qty,v_product.price,v_product.price*v_qty);\n   v_subtotal:=v_subtotal+v_product.price*v_qty; update products set stock=stock-v_qty,updated_at=now() where id=v_product.id;\n end loop;\n update orders set subtotal=v_subtotal,total=v_subtotal+v_delivery_fee where id=v_order_id;\n return jsonb_build_object('id',v_order_id,'subtotal',v_subtotal,'delivery_fee',v_delivery_fee,'total',v_subtotal+v_delivery_fee,'delivery_type',p_delivery_type,'event_id',v_event_id);\nend;\n$$;\n\nrevoke all on function public.create_order(jsonb,jsonb,text,text,uuid,text,jsonb) from public;\nrevoke all on function public.create_order(jsonb,jsonb,text,text,uuid,text) from public;\nrevoke all on function public.create_order(jsonb,jsonb,text,text,uuid,text,text,jsonb) from public;\ngrant execute on function public.create_order(jsonb,jsonb,text,text,uuid,text,text,jsonb) to anon,authenticated;\n''')
+
+          workflow = Path('.github/workflows/apply-interior-payment-receipt.yml')
+          workflow.unlink()
+
+      - name: Commit final implementation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/checkout/page.tsx app/admin/pedidos/[id]/page.tsx app/checkout-polish.css supabase/PATCH-COMPROBANTE-INTERIOR.sql .github/workflows/apply-interior-payment-receipt.yml
+          git commit -m "feat: add mandatory receipt upload for interior" || exit 0
+          git push
