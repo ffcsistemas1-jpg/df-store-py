@@ -1,6 +1,7 @@
 name: Aplicar correccion de pagos checkout
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
 permissions:
   contents: write
 jobs:
@@ -16,19 +17,16 @@ jobs:
           p=Path('app/checkout/page.tsx')
           s=p.read_text()
           if 'const copyText=async(value:string)' not in s:
-              marker='const pasteMaps=()=>'
+              marker='const pasteMaps()=>'
               if marker not in s: raise SystemExit('No se encontro pasteMaps')
               s=s.replace(marker,'const [copiedKey,setCopiedKey]=useState(""); '+marker,1)
-              paste_end='};'
-              pos=s.find(marker)
-              end=s.find(paste_end,pos)
+              pos=s.find(marker); end=s.find('};',pos)
               if end<0: raise SystemExit('No se encontro fin de pasteMaps')
-              end=end+len(paste_end)
+              end+=2
               s=s[:end]+'\n const copyText=async(value:string)=>{if(!value)return;try{await navigator.clipboard.writeText(value);setCopiedKey(value);window.setTimeout(()=>setCopiedKey(\"\"),1600)}catch{setMsg(\"No se pudo copiar automáticamente. Seleccioná y copiá el dato manualmente.\")}};'+s[end:]
-          oldpay=re.compile(r'<label>Método de pago.*?</label>',re.S)
-          newpay='<label>Método de pago<select value={form.payment_method} onChange={e=>set("payment_method",e.target.value)} disabled={form.delivery_type==="delivery"}><option value="Pago al recibir">Pago al recibir</option><option value="Transferencia">Transferencia bancaria</option><option value="Giro Tigo">Giro Tigo</option></select><small className="field-optional">{form.delivery_type==="delivery"?"En Asunción y Central el pago es al recibir.":"Elegí Transferencia bancaria o Giro Tigo para pagar tu envío al interior."}</small></label>'
-          m=oldpay.search(s)
+          m=re.search(r'<label>Método de pago.*?</label>',s,re.S)
           if not m: raise SystemExit('No se encontro metodo de pago')
+          newpay='<label>Método de pago<select value={form.payment_method} onChange={e=>set("payment_method",e.target.value)} disabled={form.delivery_type==="delivery"}><option value="Pago al recibir">Pago al recibir</option><option value="Transferencia">Transferencia bancaria</option><option value="Giro Tigo">Giro Tigo</option></select><small className="field-optional">{form.delivery_type==="delivery"?"En Asunción y Central el pago es al recibir.":"Elegí Transferencia bancaria o Giro Tigo para pagar tu envío al interior."}</small></label>'
           s=s[:m.start()]+newpay+s[m.end():]
           bank=re.compile(r'<div className="payment-instructions"><h3>Datos para transferencia</h3>.*?<label>Referencia de operación.*?</label></div>}',re.S)
           newbank='<div className="payment-instructions"><h3>Datos para transferencia</h3>{banks.length?banks.map(b=><div className="payment-box" key={b.id}><div className="payment-copy-row"><b>{b.bank}</b><button type="button" className="payment-copy" onClick={()=>copyText(b.bank)}>{copiedKey===b.bank?"✓ Copiado":"Copiar"}</button></div><div className="payment-copy-row"><span>{b.account_type||"Cuenta"}</span></div><div className="payment-copy-row"><span>N.º {b.account_number||""}</span>{b.account_number&&<button type="button" className="payment-copy" onClick={()=>copyText(b.account_number||"")}>{copiedKey===b.account_number?"✓ Copiado":"Copiar"}</button>}</div><div className="payment-copy-row"><span>Titular: {b.holder_name||""}</span>{b.holder_name&&<button type="button" className="payment-copy" onClick={()=>copyText(b.holder_name||"")}>{copiedKey===b.holder_name?"✓ Copiado":"Copiar"}</button>}</div>{b.document&&<div className="payment-copy-row"><span>CI/RUC: {b.document}</span><button type="button" className="payment-copy" onClick={()=>copyText(b.document||"")}>{copiedKey===b.document?"✓ Copiado":"Copiar"}</button></div>}{b.alias&&<div className="payment-copy-row"><span>Alias: {b.alias}</span><button type="button" className="payment-copy" onClick={()=>copyText(b.alias||"")}>{copiedKey===b.alias?"✓ Copiado":"Copiar"}</button></div>}</div>):<p className="muted">Los datos de transferencia todavía no están configurados.</p>}<label>Referencia de operación<input value={paymentReference} onChange={e=>setPaymentReference(e.target.value)} placeholder="Opcional" /></label></div>}'
@@ -41,15 +39,13 @@ jobs:
           if not m: raise SystemExit('No se encontro bloque Tigo')
           s=s[:m.start()]+newtigo+s[m.end():]
           p.write_text(s)
-          css=Path('app/checkout-polish.css')
-          c=css.read_text()
-          if '.payment-copy-row' not in c:
-              c+='''\n/* Copiar datos de pago */\n.payment-copy-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:5px 0;min-height:30px}.payment-copy-row>span,.payment-copy-row>b{min-width:0;overflow-wrap:anywhere}.payment-copy{border:1px solid rgba(123,29,51,.18);background:#fff;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}.payment-copy:hover{background:#faf5f6}.payment-copy:focus-visible{outline:2px solid #7b1d33;outline-offset:2px}\n'''
+          css=Path('app/checkout-polish.css'); c=css.read_text()
+          if '.payment-copy-row' not in c: c+='''\n.payment-copy-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:5px 0;min-height:30px}.payment-copy-row>span,.payment-copy-row>b{min-width:0;overflow-wrap:anywhere}.payment-copy{border:1px solid rgba(123,29,51,.18);background:#fff;border-radius:8px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}.payment-copy:hover{background:#faf5f6}.payment-copy:focus-visible{outline:2px solid #7b1d33;outline-offset:2px}\n'''
           css.write_text(c)
           PY
       - name: Verificar TypeScript
         run: npx tsc --noEmit --pretty false
-      - name: Commit cambios
+      - name: Commit cambios y retirar workflow
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
