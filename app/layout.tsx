@@ -7,6 +7,7 @@ import "./mobile-premium.css";
 import "./storefront-compact.css";
 import "./nova-style.css";
 import "./product-page-polish.css";
+import "./checkout-copy-fix.css";
 import { CartProvider, Header, WhatsAppButton, TopBanner, MetaPixel, ServiceWorkerRegister, SiteFooter, MobileCustomerNav } from "./ui";
 
 export const metadata: Metadata = {
