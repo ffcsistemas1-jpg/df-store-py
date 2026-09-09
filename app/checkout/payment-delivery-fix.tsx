@@ -13,9 +13,13 @@ export default function PaymentDeliveryFix() {
       if (!payment) return;
 
       payment.disabled = false;
+      const selectedDelivery = document.querySelector<HTMLInputElement>('input[name="delivery"]:checked');
+      const selectedLabel = selectedDelivery?.closest("label")?.textContent?.toLowerCase() || "";
+      const isInterior = selectedLabel.includes("interior");
+
       if (!initialized) {
         initialized = true;
-        if (payment.value === "Transferencia" || !payment.value) {
+        if (!isInterior && (payment.value === "Transferencia" || !payment.value)) {
           payment.value = "Pago al recibir";
           payment.dispatchEvent(new Event("change", { bubbles: true }));
         }
@@ -24,7 +28,7 @@ export default function PaymentDeliveryFix() {
 
     apply();
     const observer = new MutationObserver(apply);
-    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["disabled"] });
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["disabled", "checked"] });
     return () => observer.disconnect();
   }, []);
 
