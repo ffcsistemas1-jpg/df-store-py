@@ -3,6 +3,7 @@ import "./globals.css";
 import "./storefront-polish.css";
 import "./checkout-polish.css";
 import "./premium-storefront.css";
+import "./mobile-premium.css";
 import { CartProvider, Header, WhatsAppButton, TopBanner, MetaPixel, ServiceWorkerRegister, SiteFooter, MobileCustomerNav } from "./ui";
 
 export const metadata: Metadata = {
