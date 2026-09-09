@@ -1,0 +1,89 @@
+/* DF Store PY — capa visual storefront. No modifica lógica, datos ni Meta. */
+:root{--df-bg:#f7f3f1;--df-surface:#fff;--df-ink:#21171a;--df-muted:#71686a;--df-line:#e7dfe0;--df-brand:#98234d;--df-brand-dark:#7e1d40;--df-soft:#f8edf2;--df-shadow:0 12px 35px rgba(33,23,26,.08);--df-radius:18px}
+body:not(:has(.admin-shell)){background:var(--df-bg);color:var(--df-ink);-webkit-font-smoothing:antialiased}
+body:not(:has(.admin-shell)) main{width:100%;max-width:1240px;margin:0 auto;padding:32px 28px 64px}
+body:not(:has(.admin-shell)) button,body:not(:has(.admin-shell)) input,body:not(:has(.admin-shell)) select,body:not(:has(.admin-shell)) textarea{font:inherit}
+body:not(:has(.admin-shell)) button{cursor:pointer}
+body:not(:has(.admin-shell)) input:not([type=checkbox]):not([type=radio]),body:not(:has(.admin-shell)) select,body:not(:has(.admin-shell)) textarea{width:100%;border:1px solid #d8cdcf;border-radius:12px;background:#fff;color:var(--df-ink);padding:13px 14px;outline:none;transition:border-color .18s,box-shadow .18s,background .18s}
+body:not(:has(.admin-shell)) input:not([type=checkbox]):not([type=radio]):focus,body:not(:has(.admin-shell)) select:focus,body:not(:has(.admin-shell)) textarea:focus{border-color:var(--df-brand);box-shadow:0 0 0 4px rgba(152,35,77,.10)}
+body:not(:has(.admin-shell)) input::placeholder,body:not(:has(.admin-shell)) textarea::placeholder{color:#9a9193}
+body:not(:has(.admin-shell)) textarea{min-height:110px;resize:vertical}
+body:not(:has(.admin-shell)) label{color:var(--df-ink);font-weight:750}
+body:not(:has(.admin-shell)) input[type=checkbox],body:not(:has(.admin-shell)) input[type=radio]{accent-color:var(--df-brand)}
+body:not(:has(.admin-shell)) .btn{border:0!important;border-radius:12px!important;background:var(--df-brand)!important;color:#fff!important;padding:13px 20px!important;font-weight:850!important;line-height:1.2;box-shadow:0 7px 18px rgba(152,35,77,.16);transition:transform .16s,background .16s,box-shadow .16s}
+body:not(:has(.admin-shell)) .btn:hover{background:var(--df-brand-dark)!important;transform:translateY(-1px);box-shadow:0 10px 24px rgba(152,35,77,.20)}
+body:not(:has(.admin-shell)) .btn:active{transform:translateY(0)}
+body:not(:has(.admin-shell)) .link-btn{color:var(--df-brand);font-weight:800}
+body:not(:has(.admin-shell)) .top-banner{min-height:38px;display:flex;align-items:center;justify-content:center;padding:9px 18px;background:var(--df-brand);font-size:13px;letter-spacing:.1px}
+body:not(:has(.admin-shell)) header{box-shadow:0 1px 0 rgba(33,23,26,.03)}
+body:not(:has(.admin-shell)) .head{gap:18px}
+body:not(:has(.admin-shell)) .brand{white-space:nowrap}
+body:not(:has(.admin-shell)) .head-search{margin:0 8px;max-width:560px}
+body:not(:has(.admin-shell)) .head-search input{border:0!important;box-shadow:none!important;background:transparent!important;padding:8px 0!important}
+body:not(:has(.admin-shell)) .head-search button{flex:0 0 auto;width:auto;border:0;background:var(--df-brand);color:#fff;border-radius:999px;padding:9px 15px;font-weight:800}
+body:not(:has(.admin-shell)) section{margin:0 0 42px}
+body:not(:has(.admin-shell)) h1,body:not(:has(.admin-shell)) h2,body:not(:has(.admin-shell)) h3{color:var(--df-ink)}
+body:not(:has(.admin-shell)) h1{font-size:clamp(32px,4vw,48px);line-height:1.05;letter-spacing:-.7px;margin:10px 0 14px}
+body:not(:has(.admin-shell)) h2{line-height:1.15}
+body:not(:has(.admin-shell)) .title{margin-bottom:28px}
+body:not(:has(.admin-shell)) .title p{color:var(--df-muted);line-height:1.55}
+body:not(:has(.admin-shell)) .card,body:not(:has(.admin-shell)) .panel,body:not(:has(.admin-shell)) .promo-card,body:not(:has(.admin-shell)) .step{box-shadow:var(--df-shadow)}
+body:not(:has(.admin-shell)) .card{border-color:var(--df-line)}
+body:not(:has(.admin-shell)) .catalog-toolbar{background:#fff;border:1px solid var(--df-line);padding:12px;border-radius:16px;box-shadow:0 6px 20px rgba(33,23,26,.04)}
+body:not(:has(.admin-shell)) .catalog-search,body:not(:has(.admin-shell)) .catalog-sort{margin:0}
+body:not(:has(.admin-shell)) .filters{gap:8px;margin:10px 0 22px}
+body:not(:has(.admin-shell)) .filters a{border-color:var(--df-line);transition:.18s}
+body:not(:has(.admin-shell)) .filters a.active{box-shadow:0 5px 14px rgba(152,35,77,.16)}
+
+/* Checkout: estructura visual sin cambiar el formulario ni su lógica */
+body:not(:has(.admin-shell)) main > section:has(.checkout-total){max-width:1080px;margin:0 auto;padding-top:8px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) h1{font-size:clamp(34px,4vw,50px);margin-bottom:22px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total)>div{margin-bottom:18px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) form{display:flex;flex-direction:column;gap:18px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) form>div{background:#fff;border:1px solid var(--df-line);border-radius:18px;padding:22px;box-shadow:0 8px 24px rgba(33,23,26,.05)}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) form label{display:flex;flex-direction:column;gap:7px;margin:0 0 14px;font-size:14px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) form label:last-child{margin-bottom:0}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) form input,body:not(:has(.admin-shell)) main > section:has(.checkout-total) form select,body:not(:has(.admin-shell)) main > section:has(.checkout-total) form textarea{margin:0}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) form button{border:0;border-radius:12px;padding:13px 18px;font-weight:850}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) form button:not(.link-btn){background:var(--df-brand);color:#fff}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) .checkout-total{background:#fff;border:1px solid var(--df-line);border-radius:14px;padding:15px 18px;box-shadow:none}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) .checkout-total.grand{border:2px solid var(--df-brand);background:var(--df-soft);font-size:20px;font-weight:900}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) .payment-instructions{background:#fff;border-color:var(--df-line);border-radius:16px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) .payment-box{border-color:var(--df-line);border-radius:12px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) .draft-notice{border-radius:12px;padding:13px 15px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) .actions{gap:10px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) [role=tablist]{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+body:not(:has(.admin-shell)) main > section:has(.checkout-total) [role=tab],body:not(:has(.admin-shell)) main > section:has(.checkout-total) form>button{min-height:44px}
+
+/* Carrito */
+body:not(:has(.admin-shell)) .cart-list{gap:14px}
+body:not(:has(.admin-shell)) .cart-row{box-shadow:0 7px 22px rgba(33,23,26,.05);border-color:var(--df-line)}
+body:not(:has(.admin-shell)) .cart-summary{background:#fff;border:1px solid var(--df-line);border-radius:18px;padding:20px;box-shadow:var(--df-shadow)}
+body:not(:has(.admin-shell)) .qty button{border-color:#d8cdcf;background:#fff;color:var(--df-ink)}
+
+/* Home y catálogo: ritmo visual y legibilidad */
+body:not(:has(.admin-shell)) .hero{box-shadow:0 18px 45px rgba(33,23,26,.12)}
+body:not(:has(.admin-shell)) .hero .btn{background:#fff!important;color:var(--df-brand)!important;box-shadow:none}
+body:not(:has(.admin-shell)) .trust{box-shadow:0 18px 45px rgba(33,23,26,.10)}
+body:not(:has(.admin-shell)) .final-cta{box-shadow:var(--df-shadow)}
+body:not(:has(.admin-shell)) footer{margin-top:30px}
+
+/* Mensajes y estados */
+body:not(:has(.admin-shell)) .empty{box-shadow:var(--df-shadow);border-color:var(--df-line)}
+body:not(:has(.admin-shell)) .success{background:#fff;border:1px solid var(--df-line);border-radius:22px;padding:34px;box-shadow:var(--df-shadow)}
+
+@media(max-width:800px){
+ body:not(:has(.admin-shell)) main{padding:22px 16px 50px}
+ body:not(:has(.admin-shell)) .head{padding:0 16px;gap:10px}
+ body:not(:has(.admin-shell)) .head-search{display:none}
+ body:not(:has(.admin-shell)) .mobile-header-cart{margin-left:auto}
+ body:not(:has(.admin-shell)) main > section:has(.checkout-total){padding-top:0}
+ body:not(:has(.admin-shell)) main > section:has(.checkout-total) form>div{padding:17px}
+ body:not(:has(.admin-shell)) .catalog-toolbar{padding:10px}
+}
+@media(max-width:600px){
+ body:not(:has(.admin-shell)) .top-banner{font-size:12px}
+ body:not(:has(.admin-shell)) h1{font-size:34px}
+ body:not(:has(.admin-shell)) .cart-summary{padding:16px}
+ body:not(:has(.admin-shell)) main > section:has(.checkout-total) form>div{border-radius:15px}
+}
