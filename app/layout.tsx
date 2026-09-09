@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./storefront-polish.css";
 import "./checkout-polish.css";
-import "./admin-product-polish.css";
+import "./premium-storefront.css";
 import { CartProvider, Header, WhatsAppButton, TopBanner, MetaPixel, ServiceWorkerRegister, SiteFooter, MobileCustomerNav } from "./ui";
 
 export const metadata: Metadata = {
@@ -14,5 +14,5 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: "#98234d" };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
- return <html lang="es"><body><MetaPixel/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main>{children}</main><WhatsAppButton/><MobileCustomerNav/><SiteFooter/></CartProvider></body></html>;
+ return <html lang="es"><body><a className="skip-link" href="#contenido-principal">Saltar al contenido principal</a><MetaPixel/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main id="contenido-principal" tabIndex={-1}>{children}</main><WhatsAppButton/><MobileCustomerNav/><SiteFooter/></CartProvider></body></html>;
 }
