@@ -14,45 +14,47 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply checkout change
-        shell: python
         run: |
+          python3 - <<'PY'
           from pathlib import Path
           p = Path('app/checkout/page.tsx')
           s = p.read_text(encoding='utf-8')
-          changes = [
+          replacements = [
             ('shipping_company_id:string;preferred_time:string;', 'shipping_company_id:string;shipping_company_other:string;preferred_time:string;'),
             ('shipping_company_id:"",preferred_time:"Mañana"', 'shipping_company_id:"",shipping_company_other:"",preferred_time:"Mañana"'),
             ('shipping_company_id:row.shipping_company_id||x.shipping_company_id,preferred_time:', 'shipping_company_id:row.shipping_company_id||x.shipping_company_id,shipping_company_other:row.shipping_company_other||x.shipping_company_other,preferred_time:'),
             ('shipping_company_id:form.shipping_company_id||null,preferred_time:', 'shipping_company_id:form.shipping_company_id||null,shipping_company_other:form.shipping_company_other||null,preferred_time:'),
-            ('shipping_company_id:"",department:"",city:"",neighborhood:""', 'shipping_company_id:"",shipping_company_other:"",department:"",city:"",neighborhood:""'),
             ('if(form.delivery_type==="interior"&&!form.shipping_company_id)return false;', 'if(form.delivery_type==="interior"&&form.shipping_company_id==="otro"&&!form.shipping_company_other.trim())return false;'),
             ('if(form.delivery_type==="interior"&&!form.shipping_company_id){setMsg("Seleccioná una transportadora.");return false}', 'if(form.delivery_type==="interior"&&form.shipping_company_id==="otro"&&!form.shipping_company_other.trim()){setMsg("Indicá qué transportadora preferís.");return false}'),
             ('p_delivery_type:form.delivery_type,p_payment_method:form.payment_method,p_shipping_company_id:form.shipping_company_id||null,p_payment_reference:paymentReference.trim()||null,', 'p_delivery_type:form.delivery_type,p_payment_method:form.payment_method,p_shipping_company_id:(form.shipping_company_id&&form.shipping_company_id!=="otro")?form.shipping_company_id:null,p_payment_reference:paymentReference.trim()||null,'),
           ]
-          for a,b in changes:
-            if a not in s:
-              raise SystemExit(f'Pattern not found: {a}')
-            s=s.replace(a,b,1)
+          for a,b in replacements:
+              if a not in s:
+                  raise SystemExit('Pattern not found: '+a)
+              s=s.replace(a,b,1)
           old = '{form.delivery_type==="interior"&&<label>Transportadora preferida*<select required value={form.shipping_company_id} onChange={e=>set("shipping_company_id",e.target.value)}><option value="">Seleccioná una transportadora</option>{companiesForInteriorDept.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}'
           new = '{form.delivery_type==="interior"&&<div className="transportadora-preference"><label>Transportadora preferida <span className="field-optional">(opcional)</span><select value={form.shipping_company_id} onChange={e=>{const v=e.target.value;set("shipping_company_id",v);if(v!=="otro")set("shipping_company_other","")}}><option value="">No tengo preferencia</option>{companiesForInteriorDept.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}<option value="otro">Otro — quiero indicar una</option></select></label>{form.shipping_company_id==="otro"&&<label>¿A qué transportadora te gustaría que enviemos? <span className="field-optional">(opcional)</span><input value={form.shipping_company_other} onChange={e=>set("shipping_company_other",e.target.value)} placeholder="Ej. El rápido, Nuestra Señora de la Asunción, etc." /></label>}<small className="muted">Podés dejarlo en “No tengo preferencia” y nosotros coordinamos la mejor opción disponible.</small></div>}'
           if old not in s:
-            raise SystemExit('Transportadora JSX block not found')
+              raise SystemExit('Transportadora JSX block not found')
           s=s.replace(old,new,1)
-          # Save the free-text preference inside the existing order note; no DB column change is required.
-          for old,new in [
-            ('note:form.note.trim()||null},', 'note:[form.note.trim(),form.shipping_company_other.trim()?`Transportadora solicitada por el cliente: ${form.shipping_company_other.trim()}`:""] .filter(Boolean).join("\\n")||null},'),
-            ('note:form.note||null},', 'note:[form.note||"",form.shipping_company_other.trim()?`Transportadora solicitada por el cliente: ${form.shipping_company_other.trim()}`:""] .filter(Boolean).join("\\n")||null},'),
-          ]:
-            if old in s:
-              s=s.replace(old,new,1)
-              break
+          old_note='note:form.note.trim()||null},'
+          new_note='note:[form.note.trim(),form.shipping_company_other.trim()?`Transportadora solicitada por el cliente: ${form.shipping_company_other.trim()}`:""] .filter(Boolean).join("\\n")||null},'
+          if old_note in s:
+              s=s.replace(old_note,new_note,1)
+          else:
+              old_note='note:form.note||null},'
+              new_note='note:[form.note||"",form.shipping_company_other.trim()?`Transportadora solicitada por el cliente: ${form.shipping_company_other.trim()}`:""] .filter(Boolean).join("\\n")||null},'
+              if old_note in s:
+                  s=s.replace(old_note,new_note,1)
+              else:
+                  raise SystemExit('Order note pattern not found')
           p.write_text(s,encoding='utf-8')
+          PY
       - name: Commit change
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app/checkout/page.tsx
-          git diff --cached --quiet && exit 0
           git commit -m "transportadora opcional aplicado"
           git push
       - name: Remove temporary workflow
