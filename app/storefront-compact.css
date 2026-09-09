@@ -151,11 +151,66 @@
   body:not(:has(.admin-shell)) .home-trust-panel h2{font-size:31px!important}
   body:not(:has(.admin-shell)) .home-final{border-radius:22px!important;padding:36px 22px!important}
   body:not(:has(.admin-shell)) .home-final h2{font-size:32px!important}
+
+  /* Carrito: fila compacta, imagen controlada y compra visible sin scroll innecesario */
+  body:not(:has(.admin-shell)) .cart-list{
+    display:flex!important;
+    flex-direction:column!important;
+    gap:10px!important;
+    margin-bottom:14px!important;
+  }
+  body:not(:has(.admin-shell)) .cart-row{
+    display:grid!important;
+    grid-template-columns:120px minmax(0,1fr) auto auto!important;
+    align-items:center!important;
+    gap:16px!important;
+    padding:12px!important;
+    margin:0!important;
+    min-height:144px!important;
+    background:#fff!important;
+    border:1px solid #eadfe0!important;
+    border-radius:16px!important;
+    box-shadow:0 5px 16px rgba(33,23,26,.045)!important;
+  }
+  body:not(:has(.admin-shell)) .cart-thumb{
+    width:120px!important;
+    height:120px!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    border-radius:12px!important;
+    background:#f4efed!important;
+  }
+  body:not(:has(.admin-shell)) .cart-thumb img{
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    display:block!important;
+  }
+  body:not(:has(.admin-shell)) .cart-thumb b{font-size:36px!important}
+  body:not(:has(.admin-shell)) .cart-info{min-width:0!important}
+  body:not(:has(.admin-shell)) .cart-info h3{font-size:17px!important;margin:0 0 6px!important;line-height:1.2!important}
+  body:not(:has(.admin-shell)) .cart-info>span{font-size:14px!important}
+  body:not(:has(.admin-shell)) .cart-info label{font-size:12px!important;margin:10px 0 4px!important;display:block!important}
+  body:not(:has(.admin-shell)) .qty{display:flex!important;align-items:center!important;gap:0!important;margin-top:4px!important;width:max-content!important}
+  body:not(:has(.admin-shell)) .qty button{width:30px!important;height:30px!important;padding:0!important;border:1px solid #d8cdcf!important;background:#fff!important;border-radius:8px!important;font-size:17px!important}
+  body:not(:has(.admin-shell)) .qty input{width:48px!important;height:30px!important;padding:4px!important;text-align:center!important;border:1px solid #d8cdcf!important;border-radius:8px!important;font-size:13px!important;margin:0 4px!important}
+  body:not(:has(.admin-shell)) .cart-row>strong{font-size:16px!important;white-space:nowrap!important}
+  body:not(:has(.admin-shell)) .cart-row>.link-btn{border:0!important;background:transparent!important;padding:6px!important;font-size:12px!important;white-space:nowrap!important}
+  body:not(:has(.admin-shell)) .cart-summary{max-width:520px!important;margin-left:auto!important;padding:16px!important;border-radius:16px!important}
+  body:not(:has(.admin-shell)) .cart-summary>div{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:12px!important}
+  body:not(:has(.admin-shell)) .cart-summary>div strong{font-size:18px!important}
+  body:not(:has(.admin-shell)) .cart-summary p{font-size:12px!important;margin:7px 0!important}
+  body:not(:has(.admin-shell)) .cart-summary .btn{font-size:14px!important;padding:11px 15px!important}
 }
 
 @media (min-width:701px) and (max-width:1100px){
   body:not(:has(.admin-shell)) .grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
   body:not(:has(.admin-shell)) .home-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body:not(:has(.admin-shell)) .cart-row{grid-template-columns:100px minmax(0,1fr) auto!important}
+  body:not(:has(.admin-shell)) .cart-thumb{width:100px!important;height:100px!important}
+  body:not(:has(.admin-shell)) .cart-row>.link-btn{grid-column:2}
 }
 
 @media (max-width:700px){
@@ -168,4 +223,29 @@
   body:not(:has(.admin-shell)) .catalog-toolbar{grid-template-columns:1fr!important;gap:8px!important}
   body:not(:has(.admin-shell)) .catalog-toolbar .catalog-sort{width:100%!important}
   body:not(:has(.admin-shell)) .title h1{font-size:27px!important}
+
+  /* Carrito mobile: card compacte sans image géante */
+  body:not(:has(.admin-shell)) .cart-list{display:flex!important;flex-direction:column!important;gap:8px!important}
+  body:not(:has(.admin-shell)) .cart-row{
+    display:grid!important;
+    grid-template-columns:82px minmax(0,1fr)!important;
+    align-items:start!important;
+    gap:10px!important;
+    padding:9px!important;
+    min-height:0!important;
+    border-radius:14px!important;
+  }
+  body:not(:has(.admin-shell)) .cart-thumb{
+    width:82px!important;
+    height:82px!important;
+    border-radius:10px!important;
+  }
+  body:not(:has(.admin-shell)) .cart-info h3{font-size:14px!important;margin:0 0 4px!important}
+  body:not(:has(.admin-shell)) .cart-info>span{font-size:12px!important}
+  body:not(:has(.admin-shell)) .cart-info label{font-size:11px!important;margin:6px 0 3px!important}
+  body:not(:has(.admin-shell)) .qty button{width:28px!important;height:28px!important}
+  body:not(:has(.admin-shell)) .qty input{width:42px!important;height:28px!important}
+  body:not(:has(.admin-shell)) .cart-row>strong{grid-column:2;font-size:15px!important;margin-top:-3px!important}
+  body:not(:has(.admin-shell)) .cart-row>.link-btn{grid-column:2;justify-self:start;font-size:12px!important;padding:3px 0!important}
+  body:not(:has(.admin-shell)) .cart-summary{margin-top:8px!important;padding:14px!important}
 }
