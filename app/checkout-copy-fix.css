@@ -1,0 +1,44 @@
+/* DF Store PY — fuerza los botones de copiar a mostrar solo el icono. */
+.payment-copy,
+.payment-copy:hover,
+.payment-copy:focus,
+.payment-copy:active{
+  width:32px!important;
+  min-width:32px!important;
+  max-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  max-height:32px!important;
+  flex:0 0 32px!important;
+  padding:0!important;
+  overflow:hidden!important;
+  text-indent:-9999px!important;
+  font-size:0!important;
+  line-height:0!important;
+  color:transparent!important;
+  white-space:nowrap!important;
+  display:grid!important;
+  place-items:center!important;
+}
+.payment-copy::before{
+  content:""!important;
+  display:block!important;
+  width:14px!important;
+  height:14px!important;
+  flex:none!important;
+  background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237b1d33' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='9' width='11' height='11' rx='2'/%3E%3Cpath d='M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3'/%3E%3C/svg%3E")!important;
+}
+@media(max-width:700px){
+  .payment-copy,
+  .payment-copy:hover,
+  .payment-copy:focus,
+  .payment-copy:active{
+    width:30px!important;
+    min-width:30px!important;
+    max-width:30px!important;
+    height:30px!important;
+    min-height:30px!important;
+    max-height:30px!important;
+    flex-basis:30px!important;
+  }
+}
