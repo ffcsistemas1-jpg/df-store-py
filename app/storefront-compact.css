@@ -1,0 +1,171 @@
+/* DF Store PY — ajuste compacto del storefront.
+   Objetivo: menos espacio muerto, productos más visibles y jerarquía similar a tiendas ecommerce locales modernas. */
+
+@media (min-width: 701px){
+  body:not(:has(.admin-shell)) main{
+    max-width:1180px;
+    padding:22px 20px 56px;
+  }
+
+  /* Header más bajo y práctico */
+  body:not(:has(.admin-shell)) header .head{
+    max-width:1180px!important;
+    min-height:64px;
+    padding:0 20px!important;
+  }
+  body:not(:has(.admin-shell)) .brand{font-size:24px!important}
+  body:not(:has(.admin-shell)) .head-search{height:42px!important}
+  body:not(:has(.admin-shell)) .head-search button{height:34px!important;min-width:40px!important}
+
+  /* Catálogo: cuatro productos por fila, como una tienda real de escritorio */
+  body:not(:has(.admin-shell)) main > section:has(.catalog-toolbar){
+    max-width:1180px;
+  }
+  body:not(:has(.admin-shell)) .title{
+    margin-bottom:18px!important;
+  }
+  body:not(:has(.admin-shell)) .title h1{
+    font-size:32px!important;
+    line-height:1.1!important;
+    margin:4px 0 4px!important;
+  }
+  body:not(:has(.admin-shell)) .catalog-toolbar{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) 190px auto;
+    gap:10px!important;
+    margin:0 0 12px!important;
+  }
+  body:not(:has(.admin-shell)) .catalog-search,
+  body:not(:has(.admin-shell)) .catalog-sort{
+    height:42px!important;
+    min-height:42px!important;
+    border-radius:11px!important;
+  }
+  body:not(:has(.admin-shell)) .filters{
+    gap:7px!important;
+    margin:0 0 18px!important;
+    padding-bottom:2px;
+  }
+  body:not(:has(.admin-shell)) .filters a{
+    padding:7px 12px!important;
+    border-radius:999px!important;
+    font-size:12px!important;
+  }
+  body:not(:has(.admin-shell)) .grid{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:14px!important;
+    align-items:start;
+  }
+  body:not(:has(.admin-shell)) .grid .card{
+    min-width:0!important;
+    border-radius:16px!important;
+    padding:10px!important;
+    box-shadow:0 6px 18px rgba(33,23,26,.055)!important;
+  }
+  body:not(:has(.admin-shell)) .grid .card .pic{
+    height:220px!important;
+    min-height:220px!important;
+    margin:-10px -10px 10px!important;
+    border-radius:14px 14px 10px 10px!important;
+    background:#f4efed!important;
+    overflow:hidden!important;
+  }
+  body:not(:has(.admin-shell)) .grid .card .pic img{
+    width:100%!important;
+    height:100%!important;
+    object-fit:contain!important;
+    display:block!important;
+  }
+  body:not(:has(.admin-shell)) .grid .card .mobile-product-copy{
+    padding:0 2px!important;
+  }
+  body:not(:has(.admin-shell)) .grid .card .mobile-product-copy h3{
+    font-size:15px!important;
+    line-height:1.25!important;
+    margin:4px 0 7px!important;
+  }
+  body:not(:has(.admin-shell)) .grid .card .product-price-row strong{
+    font-size:18px!important;
+  }
+  body:not(:has(.admin-shell)) .grid .card .delivery-hint{
+    font-size:10px!important;
+    line-height:1.3!important;
+  }
+  body:not(:has(.admin-shell)) .grid .card .cart-actions{
+    margin-top:9px!important;
+    gap:6px!important;
+  }
+  body:not(:has(.admin-shell)) .grid .card .cart-actions .btn{
+    min-height:38px!important;
+    padding:9px 10px!important;
+    font-size:13px!important;
+    border-radius:10px!important;
+  }
+
+  /* Home: compacto, con ritmo visual de ecommerce y sin bloques gigantes */
+  body:not(:has(.admin-shell)) .home-page section{margin-bottom:40px!important}
+  body:not(:has(.admin-shell)) .home-hero{
+    grid-template-columns:minmax(0,1.5fr) minmax(270px,.7fr)!important;
+    gap:16px!important;
+    margin-bottom:18px!important;
+  }
+  body:not(:has(.admin-shell)) .home-hero-main{
+    min-height:330px!important;
+    padding:38px 42px!important;
+    border-radius:22px!important;
+  }
+  body:not(:has(.admin-shell)) .home-hero-main h1{
+    font-size:clamp(38px,4.4vw,58px)!important;
+    letter-spacing:-1.4px!important;
+    max-width:650px!important;
+    margin:10px 0 14px!important;
+  }
+  body:not(:has(.admin-shell)) .home-hero-main p{
+    font-size:16px!important;
+    line-height:1.5!important;
+    max-width:590px!important;
+    margin-bottom:18px!important;
+  }
+  body:not(:has(.admin-shell)) .hero-service-card{
+    border-radius:18px!important;
+    padding:19px!important;
+  }
+  body:not(:has(.admin-shell)) .hero-service-card strong{font-size:18px!important}
+  body:not(:has(.admin-shell)) .hero-service-card p{font-size:13px!important}
+  body:not(:has(.admin-shell)) .home-trust{margin-bottom:38px!important}
+  body:not(:has(.admin-shell)) .trust-badges{gap:9px!important}
+  body:not(:has(.admin-shell)) .trust-badge{min-height:70px!important;padding:13px!important}
+  body:not(:has(.admin-shell)) .home-section-head{margin-bottom:15px!important}
+  body:not(:has(.admin-shell)) .home-section-head h2{font-size:29px!important}
+  body:not(:has(.admin-shell)) .quick-categories{gap:10px!important}
+  body:not(:has(.admin-shell)) .quick-category{min-height:105px!important;padding:16px!important;border-radius:16px!important}
+  body:not(:has(.admin-shell)) .quick-category .qc-icon{font-size:24px!important}
+  body:not(:has(.admin-shell)) .home-product-grid{gap:14px!important}
+  body:not(:has(.admin-shell)) .home-product-grid .pic{height:250px!important}
+  body:not(:has(.admin-shell)) .home-promos{gap:14px!important}
+  body:not(:has(.admin-shell)) .home-promo{min-height:205px!important;padding:22px!important;border-radius:20px!important}
+  body:not(:has(.admin-shell)) .home-benefits{gap:9px!important}
+  body:not(:has(.admin-shell)) .home-benefit{padding:16px!important;border-radius:15px!important}
+  body:not(:has(.admin-shell)) .home-steps{border-radius:20px!important;padding:24px!important}
+  body:not(:has(.admin-shell)) .home-trust-panel{border-radius:22px!important;padding:32px!important}
+  body:not(:has(.admin-shell)) .home-trust-panel h2{font-size:31px!important}
+  body:not(:has(.admin-shell)) .home-final{border-radius:22px!important;padding:36px 22px!important}
+  body:not(:has(.admin-shell)) .home-final h2{font-size:32px!important}
+}
+
+@media (min-width:701px) and (max-width:1100px){
+  body:not(:has(.admin-shell)) .grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  body:not(:has(.admin-shell)) .home-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+
+@media (max-width:700px){
+  body:not(:has(.admin-shell)) main{padding:12px 12px 78px!important}
+  body:not(:has(.admin-shell)) .grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  body:not(:has(.admin-shell)) .grid .card{padding:8px!important;border-radius:14px!important}
+  body:not(:has(.admin-shell)) .grid .card .pic{height:190px!important;min-height:190px!important;margin:-8px -8px 8px!important;border-radius:12px 12px 9px 9px!important}
+  body:not(:has(.admin-shell)) .grid .card .mobile-product-copy h3{font-size:13px!important}
+  body:not(:has(.admin-shell)) .grid .card .product-price-row strong{font-size:16px!important}
+  body:not(:has(.admin-shell)) .catalog-toolbar{grid-template-columns:1fr!important;gap:8px!important}
+  body:not(:has(.admin-shell)) .catalog-toolbar .catalog-sort{width:100%!important}
+  body:not(:has(.admin-shell)) .title h1{font-size:27px!important}
+}
