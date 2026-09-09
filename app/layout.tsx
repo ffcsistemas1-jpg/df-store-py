@@ -9,6 +9,7 @@ import "./nova-style.css";
 import "./product-page-polish.css";
 import "./checkout-copy-fix.css";
 import { CartProvider, Header, WhatsAppButton, TopBanner, MetaPixel, ServiceWorkerRegister, SiteFooter, MobileCustomerNav } from "./ui";
+import PaymentDeliveryFix from "./checkout/payment-delivery-fix";
 
 export const metadata: Metadata = {
  title: "DF Store PY",
@@ -19,5 +20,5 @@ export const metadata: Metadata = {
 };
 export const viewport: Viewport = { themeColor: "#98234d" };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
- return <html lang="es"><body><a className="skip-link" href="#contenido-principal">Saltar al contenido principal</a><MetaPixel/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main id="contenido-principal" tabIndex={-1}>{children}</main><WhatsAppButton/><MobileCustomerNav/><SiteFooter/></CartProvider></body></html>;
+ return <html lang="es"><body><a className="skip-link" href="#contenido-principal">Saltar al contenido principal</a><MetaPixel/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main id="contenido-principal" tabIndex={-1}>{children}</main><PaymentDeliveryFix/><WhatsAppButton/><MobileCustomerNav/><SiteFooter/></CartProvider></body></html>;
 }
