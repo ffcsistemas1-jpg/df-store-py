@@ -8,23 +8,25 @@ export async function GET() {
   const { data: isAdmin } = await s.rpc("is_admin");
   if (!isAdmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "";
-  const hasToken = Boolean(process.env.META_CAPI_ACCESS_TOKEN);
-  const { data: settings } = await s.from("store_settings")
-    .select("meta_ad_account_id,meta_page_name,meta_page_id").eq("id", 1).maybeSingle();
+  const [{ data: settings }, { data: secretStatus }] = await Promise.all([
+    s.from("store_settings").select("meta_ad_account_id,meta_page_name,meta_page_id,meta_business_id,meta_pixel_id").eq("id", 1).maybeSingle(),
+    s.rpc("get_meta_secret_status"),
+  ]);
 
-  const adAccount = String(settings?.meta_ad_account_id || process.env.META_AD_ACCOUNT_ID || "").replace(/^act_/, "");
-  const marketingToken = Boolean(process.env.META_MARKETING_ACCESS_TOKEN || process.env.META_CAPI_ACCESS_TOKEN);
+  const pixelId = String(settings?.meta_pixel_id || "").replace(/[^0-9]/g, "");
+  const adAccount = String(settings?.meta_ad_account_id || "").replace(/^act_/, "").replace(/[^0-9]/g, "");
+  const capiConfigured = Boolean(secretStatus?.capiConfigured || process.env.META_CAPI_ACCESS_TOKEN);
+  const marketingConfigured = Boolean(secretStatus?.marketingConfigured || process.env.META_MARKETING_ACCESS_TOKEN || process.env.META_CAPI_ACCESS_TOKEN);
 
   return NextResponse.json({
-    pixelConfigured: Boolean(pixelId),
+    pixelConfigured: /^\d{10,20}$/.test(pixelId),
     pixelIdMasked: pixelId ? `${pixelId.slice(0, 4)}••••${pixelId.slice(-4)}` : null,
-    capiConfigured: hasToken,
-    marketingConfigured: Boolean(adAccount && marketingToken),
+    capiConfigured,
+    marketingConfigured: Boolean(adAccount && marketingConfigured),
     adAccountMasked: adAccount ? `••••${adAccount.slice(-6)}` : null,
     adAccountId: adAccount || null,
-    pageName: settings?.meta_page_name || process.env.META_PAGE_NAME || "FFC Electronic",
-    pageId: settings?.meta_page_id || process.env.META_PAGE_ID || null,
-    businessId: process.env.META_BUSINESS_ID || "474567029080550",
+    pageName: settings?.meta_page_name || "FFC Electronic",
+    pageId: settings?.meta_page_id || null,
+    businessId: settings?.meta_business_id || "845353691984059",
   });
 }
