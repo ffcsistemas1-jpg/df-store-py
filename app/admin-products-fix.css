@@ -1,0 +1,34 @@
+/* Admin product manager: stable editing modal and bounded thumbnails. */
+.admin-products{display:flex;flex-direction:column;gap:16px;margin-top:18px}
+.admin-product{display:grid;grid-template-columns:180px minmax(0,1fr);gap:20px;align-items:stretch;overflow:hidden}
+.admin-product-media{width:180px;height:180px;border-radius:14px;background:#faf7f5;border:1px solid #eadfe0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.admin-product-media img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
+.admin-product-media b{font:700 52px Georgia;color:#98234d}
+.admin-product-main{min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:16px}
+.admin-product-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.admin-product-top small{font-size:11px}
+.admin-product-top h2{font-size:24px;line-height:1.15;margin:6px 0 0;overflow-wrap:anywhere}
+.status{display:inline-flex;align-items:center;border-radius:999px;padding:6px 10px;background:#f2ecee;color:#6c5d61;font-size:12px;font-weight:800;white-space:nowrap}
+.status.active{background:#e8f7ed;color:#176b39}
+.admin-product-data{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.admin-product-data>div{background:#faf7f5;border:1px solid #eadfe0;border-radius:12px;padding:12px;min-width:0}
+.admin-product-data span,.admin-product-data b{display:block}
+.admin-product-data span{font-size:11px;color:#71686a;font-weight:800;margin-bottom:5px}
+.admin-product-data b{font-size:15px;overflow-wrap:anywhere}
+.low-stock{color:#b42318}
+.admin-product .actions{margin-top:auto}
+.admin-product .btn{margin-top:0}
+.modal-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(20,14,16,.58);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+.edit-modal{width:min(680px,100%);max-height:min(900px,calc(100vh - 40px));overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,.28);padding:24px}
+.edit-modal .title{align-items:flex-start;margin-bottom:20px}
+.edit-modal .title h2{font-size:25px;line-height:1.2;margin:6px 0 0;overflow-wrap:anywhere}
+.edit-modal label{display:flex;flex-direction:column;gap:7px;font-size:13px;font-weight:800;margin-bottom:14px}
+.edit-modal input,.edit-modal select,.edit-modal textarea{width:100%;box-sizing:border-box;border:1px solid #d8cdcf;border-radius:10px;background:#fff;color:#21171a;padding:12px 14px;font:inherit;outline:none}
+.edit-modal input:focus,.edit-modal select:focus,.edit-modal textarea:focus{border-color:#98234d;box-shadow:0 0 0 3px rgba(152,35,77,.12)}
+.edit-modal textarea{min-height:100px;resize:vertical}
+.edit-modal .twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.edit-modal .check{display:flex;flex-direction:row;align-items:center;gap:9px}
+.edit-modal .check input{width:auto}
+.edit-modal .actions{justify-content:flex-start;margin-top:8px}
+.linkbtn{border:0;background:transparent;color:#98234d;font-weight:800;cursor:pointer;padding:8px 0}
+@media(max-width:700px){.admin-product{grid-template-columns:1fr}.admin-product-media{width:100%;height:220px}.admin-product-data{grid-template-columns:1fr 1fr}.edit-modal{padding:18px}.edit-modal .twocol{grid-template-columns:1fr}.modal-backdrop{padding:10px}.edit-modal{max-height:calc(100vh - 20px)}}
