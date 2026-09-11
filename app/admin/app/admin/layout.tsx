@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AdminShell from "./admin-shell";
+import "./admin-ux.css";
 
 export const metadata: Metadata = {
   title: "DF Store PY Admin",
