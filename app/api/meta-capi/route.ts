@@ -1,9 +1,51 @@
-import { NextRequest, NextResponse } from "next/server";import { createHash } from "crypto";import { createClient } from "@supabase/supabase-js";
-const GRAPH_VERSION="v26.0";const ALLOWED_EVENTS=new Set(["PageView","ViewContent","AddToCart","InitiateCheckout","Purchase"]);const MAX_BODY_BYTES=32000;type MetaEventName="PageView"|"ViewContent"|"AddToCart"|"InitiateCheckout"|"Purchase";type PurchasePayload={order_id:string;event_id:string;value:number;currency:string;content_ids:string[];num_items:number;email?:string|null;phone?:string|null;fbp?:string|null;fbc?:string|null;landing_page?:string|null};
-const sha256=(v?:string|null)=>v?createHash("sha256").update(v.trim().toLowerCase()).digest("hex"):undefined;function supabaseServerRpc(){const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;if(!url||!key)return null;return createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}})}
-async function claimEvent(eventName:MetaEventName,eventId:string,orderId?:string){const s=supabaseServerRpc();if(!s)return false;const {data,error}=await s.rpc("claim_meta_event",{p_event_name:eventName,p_event_id:eventId,p_order_id:orderId||null});return !error&&data===true}
-async function getPurchasePayload(orderId:string,eventId:string):Promise<PurchasePayload|null>{const s=supabaseServerRpc();if(!s)return null;const {data,error}=await s.rpc("get_meta_purchase_payload",{p_order_id:orderId,p_event_id:eventId});return error||!data?null:data as PurchasePayload}
-async function recordResult(p:{event_id:string;event_name:MetaEventName;order_id?:string;value?:number;currency?:string;status:"sent"|"error"|"network_error"|"not_configured";response:unknown}){const s=supabaseServerRpc();if(!s)return;try{await s.rpc("record_meta_event_result",{p_event_id:p.event_id,p_event_name:p.event_name,p_order_id:p.order_id||null,p_value:p.value??null,p_currency:p.currency??null,p_status:p.status,p_response:p.response??null})}catch{}}
-const cleanContentIds=(v:unknown)=>{if(!Array.isArray(v))return undefined;const ids=v.map(String).filter(x=>x.length>0&&x.length<=128).slice(0,50);return ids.length?ids:undefined};async function callMetaEdge(body:unknown){const url=process.env.NEXT_PUBLIC_SUPABASE_URL;const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;if(!url||!key)return null;try{const res=await fetch(`${url}/functions/v1/meta-api`,{method:"POST",headers:{"Content-Type":"application/json",apikey:key},body:JSON.stringify({action:"capi",...(body as object)}),cache:"no-store"});return await res.json()}catch{return null}}
-async function fallbackEnvCapi(payload:any,eventName:MetaEventName,eventId:string,pixelId:string){const token=process.env.META_CAPI_ACCESS_TOKEN;if(!token||!pixelId)return{status:"not_configured"};const res=await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({data:[{event_name:eventName,event_time:Math.floor(Date.now()/1000),event_id:eventId,action_source:"website",event_source_url:payload.event_source_url,user_data:payload.user_data,custom_data:payload.custom_data}]}),cache:"no-store"});const meta=await res.json().catch(()=>({error:"invalid_meta_response"}));return{status:res.ok?"sent":"error",meta}}
-export async function POST(req:NextRequest){const contentLength=Number(req.headers.get("content-length")||0);if(contentLength>MAX_BODY_BYTES)return NextResponse.json({error:"body_too_large"},{status:413});let body:any;try{body=await req.json()}catch{return NextResponse.json({error:"invalid_body"},{status:400})}const eventName=String(body?.event_name||"") as MetaEventName;const eventId=String(body?.event_id||"").trim();const orderId=body?.order_id?String(body.order_id):undefined;if(!ALLOWED_EVENTS.has(eventName)||eventId.length<8||eventId.length>128)return NextResponse.json({error:"invalid_event"},{status:400});if(eventName==="Purchase"&&!orderId)return NextResponse.json({error:"purchase_requires_order_id"},{status:400});let value=Number.isFinite(Number(body?.value))?Math.max(0,Number(body.value)):undefined;let currency=String(body?.currency||"PYG").slice(0,8);let contentIds=cleanContentIds(body?.content_ids);let numItems=Number.isFinite(Number(body?.num_items))?Math.max(0,Math.floor(Number(body.num_items))):undefined;let email=body?.email?String(body.email):undefined;let phone=body?.phone?String(body.phone):undefined;let fbp=body?.fbp?String(body.fbp).slice(0,255):undefined;let fbc=body?.fbc?String(body.fbc).slice(0,255):undefined;let eventSourceUrl=body?.event_source_url?String(body.event_source_url).slice(0,2048):undefined;if(eventName==="Purchase"){const purchase=await getPurchasePayload(orderId!,eventId);if(!purchase)return NextResponse.json({error:"purchase_order_not_found_or_event_mismatch"},{status:409});value=Number(purchase.value);currency=purchase.currency||"PYG";contentIds=cleanContentIds(purchase.content_ids);numItems=Number(purchase.num_items||0);email=purchase.email||undefined;phone=purchase.phone||undefined;fbp=purchase.fbp||undefined;fbc=purchase.fbc||undefined;if(!eventSourceUrl&&purchase.landing_page)eventSourceUrl=purchase.landing_page}const claimed=await claimEvent(eventName,eventId,orderId);if(!claimed)return NextResponse.json({status:"duplicate_ignored"});const hashedEmail=sha256(email);const hashedPhone=sha256(phone?.replace(/[^0-9]/g,""));const userData:any={client_ip_address:req.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),client_user_agent:req.headers.get("user-agent")||undefined};if(hashedEmail)userData.em=[hashedEmail];if(hashedPhone)userData.ph=[hashedPhone];if(fbp)userData.fbp=fbp;if(fbc)userData.fbc=fbc;const payload={event_name:eventName,event_id:eventId,event_source_url:eventSourceUrl,user_data:userData,custom_data:{currency:currency||"PYG",value,content_ids:contentIds,content_type:contentIds?.length?"product":undefined,num_items:numItems}};let pixelId="";const s=supabaseServerRpc();if(s){const {data}=await s.from("store_settings").select("meta_pixel_id").eq("id",1).maybeSingle();pixelId=String(data?.meta_pixel_id||"").replace(/[^0-9]/g,"")}let result=await callMetaEdge(payload);if(!result||result.status==="not_configured")result=await fallbackEnvCapi(payload,eventName,eventId,pixelId);const status=result?.status==="sent"?"sent":result?.status==="not_configured"?"not_configured":"error";await recordResult({event_id:eventId,event_name:eventName,order_id:orderId,value,currency,status,response:result?.meta||result||null});return NextResponse.json(result||{status:"not_configured"},{status:status==="error"?502:200})}
+import { NextRequest, NextResponse } from "next/server";
+
+const ALLOWED_EVENTS = new Set(["PageView", "ViewContent", "AddToCart", "InitiateCheckout", "Purchase"]);
+const MAX_BODY_BYTES = 32000;
+
+export async function POST(req: NextRequest) {
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > MAX_BODY_BYTES) return NextResponse.json({ error: "body_too_large" }, { status: 413 });
+
+  let body: any;
+  try { body = await req.json(); } catch { return NextResponse.json({ error: "invalid_body" }, { status: 400 }); }
+
+  const eventName = String(body?.event_name || "");
+  const eventId = String(body?.event_id || "").trim();
+  const orderId = body?.order_id ? String(body.order_id) : undefined;
+  if (!ALLOWED_EVENTS.has(eventName) || eventId.length < 8 || eventId.length > 128) {
+    return NextResponse.json({ error: "invalid_event" }, { status: 400 });
+  }
+  if (eventName === "Purchase" && !orderId) {
+    return NextResponse.json({ error: "purchase_requires_order_id" }, { status: 400 });
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !publishableKey) {
+    return NextResponse.json({ status: "not_configured" });
+  }
+
+  const forwardBody = {
+    action: "capi",
+    ...body,
+    event_name: eventName,
+    event_id: eventId,
+    order_id: orderId,
+    client_ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+    client_user_agent: req.headers.get("user-agent") || undefined,
+  };
+
+  try {
+    const response = await fetch(`${supabaseUrl}/functions/v1/meta-api`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: publishableKey },
+      body: JSON.stringify(forwardBody),
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => ({ status: "invalid_edge_response" }));
+    return NextResponse.json(result, { status: response.status });
+  } catch {
+    return NextResponse.json({ status: "network_error" }, { status: 502 });
+  }
+}
