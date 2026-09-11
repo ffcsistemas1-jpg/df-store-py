@@ -24,18 +24,9 @@ export async function GET(req: Request) {
   if (!isAdmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   const { data: settings } = await s.from("store_settings").select("meta_ad_account_id").eq("id", 1).maybeSingle();
   const accountId = String(settings?.meta_ad_account_id || "").replace(/^act_/, "").replace(/[^0-9]/g, "");
-  const token = process.env.META_MARKETING_ACCESS_TOKEN || process.env.META_CAPI_ACCESS_TOKEN || "";
-  const period = new URL(req.url).searchParams.get("period") || "30d";
+  const period = new URL(req.url).searchParams.get("period") || "1d";
   const edge = await callMetaEdge(period);
   if (edge?.connected || edge?.configured || edge?.reason === "missing_ad_account_or_marketing_token") return NextResponse.json(edge);
-  if (!accountId || !token) return NextResponse.json({ configured: false, connected: false, reason: "missing_ad_account_or_marketing_token" });
-  const datePreset = period === "1d" ? "today" : period === "7d" ? "last_7d" : period === "all" ? "maximum" : "last_30d";
-  const url = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/insights`);
-  url.searchParams.set("fields", "spend,impressions,clicks,actions,action_values,purchase_roas"); url.searchParams.set("date_preset", datePreset); url.searchParams.set("level", "account"); url.searchParams.set("access_token", token);
-  try {
-    const res = await fetch(url, { cache: "no-store" }); const json = await res.json();
-    if (!res.ok) return NextResponse.json({ configured: true, connected: false, error: json?.error?.message || "Meta API error" }, { status: 502 });
-    const row = json?.data?.[0] || {}; const purchases = actionValue(row.actions, /purchase/i); const purchaseValue = actionValue(row.action_values, /purchase/i); const spend = Number(row.spend || 0);
-    return NextResponse.json({ configured: true, connected: true, period, spend, impressions: Number(row.impressions || 0), clicks: Number(row.clicks || 0), purchases, purchaseValue, costPerPurchase: purchases > 0 ? spend / purchases : 0, roas: spend > 0 ? purchaseValue / spend : 0 });
-  } catch (e: unknown) { return NextResponse.json({ configured: true, connected: false, error: e instanceof Error ? e.message : String(e) }, { status: 502 }); }
+  if (!accountId) return NextResponse.json({ configured: false, connected: false, period, spend: 0, impressions: 0, clicks: 0, purchases: 0, purchaseValue: 0, reason: "missing_ad_account" });
+  return NextResponse.json({ configured: false, connected: false, period, spend: 0, impressions: 0, clicks: 0, purchases: 0, purchaseValue: 0, reason: "marketing_api_not_configured" });
 }
