@@ -23,8 +23,9 @@ export function ProductManager({ initialProducts }: { initialProducts: Product[]
     try {
       const response = await fetch("/api/admin-products", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
         credentials: "include",
+        cache: "no-store",
         body: JSON.stringify({
           id: product.id,
           name: product.name,
@@ -38,9 +39,10 @@ export function ProductManager({ initialProducts }: { initialProducts: Product[]
           active: product.active,
         }),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result?.error || "No se pudo guardar el producto.");
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.error || `No se pudo guardar el producto (${response.status}).`);
       const updated = result.product as Product;
+      if (!updated?.id) throw new Error("El servidor no devolvió el producto actualizado.");
       setProducts((list) => list.map((item) => item.id === updated.id ? updated : item));
       setEditing(null);
       setMessage("✅ Producto y disponibilidad actualizados correctamente.");
@@ -64,11 +66,11 @@ export function ProductManager({ initialProducts }: { initialProducts: Product[]
     {message && <div className="panel">{message}</div>}
     <div className="admin-products">
       {shown.map((p) => <article className="panel admin-product" key={p.id}>
-        <div className="admin-product-media">{p.image_url ? <img src={p.image_url} alt={p.name} /> : <b>DF</b>}</div>
+        <div className="admin-product-media">{p.image_url ? <img src={p.image_url} alt={p.name} loading="lazy" onError={(e) => { e.currentTarget.style.display = "none"; }} /> : <b>DF</b>}</div>
         <div className="admin-product-main">
           <div className="admin-product-top"><div><small>{p.category || "Sin categoría"}</small><h2>{p.name}</h2></div><span className={p.active ? "status active" : "status"}>{p.active ? "Activo" : "Inactivo"}</span></div>
           <div className="admin-product-data"><div><span>Precio</span><b>₲ {Number(p.price).toLocaleString("es-PY")}</b></div><div><span>Costo</span><b>₲ {Number(p.cost || 0).toLocaleString("es-PY")}</b></div><div><span>Disponibilidad</span><b className={p.stock <= 5 ? "low-stock" : ""}>{p.stock} unidad(es)</b></div></div>
-          <div className="actions"><button className="btn" disabled={busy} onClick={() => setEditing({ ...p })}>Editar disponibilidad</button><button className="btn secondary" disabled={busy} onClick={() => toggle(p)}>{p.active ? "Desactivar" : "Activar"}</button></div>
+          <div className="actions"><button type="button" className="btn" disabled={busy} onClick={() => { setMessage(""); setEditing({ ...p }); }}>Editar disponibilidad</button><button type="button" className="btn secondary" disabled={busy} onClick={() => toggle(p)}>{p.active ? "Desactivar" : "Activar"}</button></div>
         </div>
       </article>)}
     </div>
@@ -80,7 +82,7 @@ export function ProductManager({ initialProducts }: { initialProducts: Product[]
 function EditProduct({ product, busy, onCancel, onSave }: { product:Product; busy:boolean; onCancel:()=>void; onSave:(p:Product)=>void }) {
   const [draft, setDraft] = useState<Product>({ ...product });
   const set = (key:keyof Product, value:any) => setDraft((old) => ({ ...old, [key]: value }));
-  return <div className="modal-backdrop" role="dialog" aria-modal="true">
+  return <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={`Editar ${draft.name}`}>
     <div className="panel edit-modal">
       <div className="title"><div><small>EDITAR PRODUCTO</small><h2>{draft.name}</h2></div><button className="linkbtn" type="button" onClick={onCancel}>Cerrar ✕</button></div>
       <label>Nombre<input value={draft.name} onChange={(e) => set("name", e.target.value)} /></label>
