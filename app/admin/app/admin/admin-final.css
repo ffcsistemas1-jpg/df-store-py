@@ -1,0 +1,54 @@
+/* DF Store PY — ADMINISTRADOR ONLY — override definitivo */
+.admin-content{max-width:1280px!important;padding:28px 32px!important;min-width:0!important}
+.admin-content section{margin:0!important}
+.admin-content .admin-page-heading{margin:0 0 22px!important;align-items:center!important}
+.admin-content .admin-page-heading h1{margin:4px 0!important;font-size:clamp(30px,3.2vw,44px)!important}
+
+/* Dashboard: formulario de alta ordenado */
+.admin-content .admin-create-panel{padding:26px!important;max-width:100%!important;overflow:hidden!important}
+.admin-content .admin-create-panel .admin-section-heading{margin-bottom:20px!important}
+.admin-content .admin-create-panel .admin-section-heading h2{margin:5px 0!important;font-size:26px!important}
+.admin-content .admin-create-panel .product-form{display:block!important;width:100%!important;max-width:900px!important}
+.admin-content .admin-create-panel .product-form .formgrid,
+.admin-content .admin-create-panel .product-form .twocol,
+.admin-content .admin-create-panel .formgrid,
+.admin-content .admin-create-panel .twocol{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;align-items:start!important}
+.admin-content .admin-create-panel .product-form label{display:block!important;margin:0 0 16px!important;min-width:0!important}
+.admin-content .admin-create-panel .product-form input,
+.admin-content .admin-create-panel .product-form select,
+.admin-content .admin-create-panel .product-form textarea{width:100%!important;min-height:46px!important;padding:12px 14px!important;font-size:15px!important;box-sizing:border-box!important}
+.admin-content .admin-create-panel .product-form textarea{min-height:120px!important}
+.admin-content .admin-create-panel .product-form .upload{margin-top:18px!important;padding:18px!important}
+
+/* Inventario: compactar la interfaz REAL del administrador */
+.admin-content .admin-products{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;align-items:stretch!important}
+.admin-content .admin-product{display:grid!important;grid-template-columns:120px minmax(0,1fr)!important;gap:15px!important;align-items:start!important;margin:0!important;padding:15px!important;min-width:0!important;overflow:hidden!important}
+.admin-content .admin-product-media,
+.admin-content .admin-product .pic,
+.admin-content .admin-product .product-image{width:120px!important;height:120px!important;min-width:120px!important;max-width:120px!important;max-height:120px!important;border-radius:12px!important;overflow:hidden!important;background:#faf7f5!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.admin-content .admin-product-media img,
+.admin-content .admin-product .pic img,
+.admin-content .admin-product .product-image img{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center!important}
+.admin-content .admin-product-main{min-width:0!important}
+.admin-content .admin-product-top h2{font-size:19px!important;line-height:1.2!important;margin:5px 0 10px!important;overflow-wrap:anywhere!important}
+.admin-content .admin-product-data{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+.admin-content .admin-product-data>div{min-width:0!important;padding:8px!important}
+.admin-content .admin-product .actions{display:flex!important;flex-wrap:wrap!important;gap:7px!important}
+.admin-content .admin-product .actions button{font-size:12px!important;padding:9px 11px!important}
+
+/* Fallback para tarjetas antiguas que usan panel/card/pic */
+.admin-content .admin-products .panel,
+.admin-content .admin-products .card{min-width:0!important;overflow:hidden!important}
+.admin-content .admin-products .panel>img,
+.admin-content .admin-products .card>img,
+.admin-content .admin-products .panel .pic,
+.admin-content .admin-products .card .pic{width:120px!important;height:120px!important;max-width:120px!important;max-height:120px!important;object-fit:contain!important;overflow:hidden!important}
+.admin-content .admin-products .panel .pic img,
+.admin-content .admin-products .card .pic img{width:100%!important;height:100%!important;object-fit:contain!important}
+
+/* Modal de edición */
+.admin-content .df-modal-backdrop{position:fixed!important;inset:0!important;z-index:99999!important}
+.admin-content .df-edit-modal{width:min(720px,calc(100vw - 32px))!important;max-height:calc(100vh - 32px)!important;overflow-y:auto!important}
+
+@media(max-width:1050px){.admin-content .admin-products{grid-template-columns:1fr!important}}
+@media(max-width:700px){.admin-content{padding:18px 14px!important}.admin-content .admin-create-panel{padding:18px!important}.admin-content .admin-create-panel .product-form .formgrid,.admin-content .admin-create-panel .product-form .twocol,.admin-content .admin-create-panel .formgrid,.admin-content .admin-create-panel .twocol{grid-template-columns:1fr!important}.admin-content .admin-products{grid-template-columns:1fr!important}.admin-content .admin-product{grid-template-columns:88px minmax(0,1fr)!important;gap:12px!important}.admin-content .admin-product-media,.admin-content .admin-product .pic,.admin-content .admin-product .product-image{width:88px!important;height:88px!important;min-width:88px!important;max-width:88px!important;max-height:88px!important}}
