@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./admin-theme.css";
 import { CartProvider, Header, WhatsAppButton, TopBanner } from "./ui";
 
 export const metadata: Metadata = { title: "DF Store PY", description: "Todo lo que buscan en un solo lugar" };
