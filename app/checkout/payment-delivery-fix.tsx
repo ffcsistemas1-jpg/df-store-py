@@ -3,9 +3,8 @@
 import { useEffect } from "react";
 
 /**
- * Keeps the checkout payment selector honest by delivery type.
- * Interior orders must start with no payment method selected;
- * local delivery remains "Pago al recibir".
+ * En pedidos al interior, Pago al recibir no debe estar disponible.
+ * En delivery local, Pago al recibir sí permanece disponible.
  */
 export default function PaymentDeliveryFix() {
   useEffect(() => {
@@ -16,55 +15,51 @@ export default function PaymentDeliveryFix() {
       const selectedText = selected?.closest("label")?.textContent?.toLowerCase() || "";
       if (selectedText.includes("interior")) return "interior";
 
-      // The delivery radio buttons are not rendered on steps 2 and 3.
-      // The interior-only receipt panel is a reliable fallback there.
+      // En los pasos 2 y 3 ya no se muestran las opciones de entrega.
+      // El bloque de comprobante solo existe para pedidos al interior.
       if (document.querySelector(".payment-receipt-box")) return "interior";
-      const helperText = Array.from(document.querySelectorAll("small, p, span"))
-        .map((node) => node.textContent?.toLowerCase() || "")
-        .join(" ");
-      return helperText.includes("envíos al interior") || helperText.includes("envíos al interior")
-        ? "interior"
-        : "delivery";
+
+      return "delivery";
     };
 
     const apply = () => {
       const payment = Array.from(document.querySelectorAll<HTMLSelectElement>("select")).find((select) => {
-        const values = Array.from(select.options).map((option) => option.value);
-        return values.includes("Pago al recibir") && values.includes("Transferencia") && values.includes("Giro Tigo");
+        const values = Array.from(select.options).map((option) => option.value.toLowerCase());
+        return values.includes("pago al recibir".toLowerCase()) &&
+          values.some((value) => value === "transferencia" || value === "transferencia bancaria") &&
+          values.includes("giro tigo");
       });
 
       if (!payment || syncing) return;
 
-      const isInterior = getDeliveryType() === "interior";
-      const placeholderValue = "";
-      const placeholderText = "Elegí un método de pago";
+      const interior = getDeliveryType() === "interior";
+      const cashOption = Array.from(payment.options).find(
+        (option) => option.value.toLowerCase() === "pago al recibir"
+      );
 
-      let placeholder = Array.from(payment.options).find((option) => option.value === placeholderValue);
-      if (!placeholder) {
-        placeholder = document.createElement("option");
-        placeholder.value = placeholderValue;
-        payment.insertBefore(placeholder, payment.firstChild);
+      if (cashOption) {
+        // hidden + disabled lo elimina de las opciones visibles del selector
+        // nativo de Android/iOS, sin romper el formulario controlado por React.
+        cashOption.hidden = interior;
+        cashOption.disabled = interior;
       }
-      placeholder.textContent = placeholderText;
 
-      payment.disabled = !isInterior;
-
-      if (isInterior) {
-        if (payment.value !== placeholderValue) {
+      if (interior) {
+        payment.disabled = false;
+        if (payment.value.toLowerCase() === "pago al recibir") {
           syncing = true;
-          payment.value = placeholderValue;
+          payment.value = "";
           payment.dispatchEvent(new Event("change", { bubbles: true }));
-          window.setTimeout(() => {
-            syncing = false;
-          }, 0);
+          window.setTimeout(() => { syncing = false; }, 0);
         }
-      } else if (payment.value !== "Pago al recibir") {
-        syncing = true;
-        payment.value = "Pago al recibir";
-        payment.dispatchEvent(new Event("change", { bubbles: true }));
-        window.setTimeout(() => {
-          syncing = false;
-        }, 0);
+      } else {
+        payment.disabled = false;
+        if (!payment.value || payment.value.toLowerCase() !== "pago al recibir") {
+          syncing = true;
+          payment.value = "Pago al recibir";
+          payment.dispatchEvent(new Event("change", { bubbles: true }));
+          window.setTimeout(() => { syncing = false; }, 0);
+        }
       }
     };
 
