@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 /** Keeps Android/browser back inside the three checkout steps. */
 export default function CheckoutHistory() {
+  const lastStep = useRef(0);
+  const handlingPop = useRef(false);
+
   useEffect(() => {
-    let currentStep = 1;
-    let handlingPop = false;
+    const readStep = () => {
+      const match = document.body.innerText.match(/PASO\s+(1|2|3)\s+DE\s+3/i);
+      return match ? Number(match[1]) : 0;
+    };
 
     const makeState = (step: number) => ({
       ...(window.history.state || {}),
@@ -14,43 +19,40 @@ export default function CheckoutHistory() {
       checkoutStep: step,
     });
 
-    // Do not pre-create fake future entries. They desynchronize the browser
-    // pointer from React. Instead, record each step only after it is rendered.
-    window.history.replaceState(makeState(1), "", window.location.href);
-
-    const readStep = () => {
-      const match = document.body.innerText.match(/PASO\s+(\d+)\s+DE\s+3/i);
-      return match ? Math.max(1, Math.min(3, Number(match[1]))) : currentStep;
-    };
+    const initial = readStep() || 1;
+    lastStep.current = initial;
+    window.history.replaceState(makeState(initial), "", window.location.href);
 
     const findBackButton = () => Array.from(document.querySelectorAll("button"))
       .find((button) => /^\s*volver\s*$/i.test(button.textContent || "")) as HTMLButtonElement | undefined;
 
     const observer = new MutationObserver(() => {
-      if (handlingPop) return;
-      const visibleStep = readStep();
-      if (visibleStep === currentStep) return;
+      if (handlingPop.current) return;
+      const visible = readStep();
+      if (!visible || visible === lastStep.current) return;
 
-      // Forward React navigation gets a real browser entry. Backward React
-      // navigation is already represented by popstate and must not push one.
-      if (visibleStep > currentStep) {
-        window.history.pushState(makeState(visibleStep), "", window.location.href);
+      // Only record forward transitions. Never call history.go() here.
+      if (visible > lastStep.current) {
+        window.history.pushState(makeState(visible), "", window.location.href);
       }
-      currentStep = visibleStep;
+      lastStep.current = visible;
     });
 
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
     const onPopState = (event: PopStateEvent) => {
       const target = Number(event.state?.checkoutStep || 0);
-      const visible = readStep();
-      if (!target || target >= visible) return;
+      const visible = readStep() || lastStep.current;
 
-      handlingPop = true;
-      currentStep = target;
+      // A state without our marker means the user is leaving checkout.
+      if (!target || !event.state?.__dfCheckout) return;
+      if (target >= visible) return;
+
+      handlingPop.current = true;
+      lastStep.current = target;
       const back = findBackButton();
       if (back) back.click();
-      window.setTimeout(() => { handlingPop = false; }, 200);
+      window.setTimeout(() => { handlingPop.current = false; }, 150);
     };
 
     window.addEventListener("popstate", onPopState);
