@@ -1,0 +1,112 @@
+/* DF Store PY — cart experience, professional responsive pass */
+.df-cart-page {
+  width: min(1180px, calc(100% - 40px)) !important;
+  margin: 44px auto 132px !important;
+  color: #241b1f !important;
+}
+.df-cart-heading {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+  margin: 0 0 30px !important;
+  padding-bottom: 24px !important;
+  border-bottom: 1px solid #eee5e7 !important;
+}
+.df-cart-heading > div { min-width: 0 !important; }
+.df-cart-eyebrow { margin-bottom: 10px !important; font-size: 12px !important; letter-spacing: .2em !important; }
+.df-cart-heading h1 { margin: 0 0 12px !important; font-size: clamp(42px, 6vw, 68px) !important; letter-spacing: -.04em !important; }
+.df-cart-heading p { margin: 0 !important; max-width: 560px !important; font-size: 17px !important; line-height: 1.5 !important; }
+.df-cart-back {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  margin-top: 20px !important;
+  padding: 10px 0 !important;
+  color: #98234d !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  white-space: normal !important;
+  text-decoration: none !important;
+}
+.df-cart-layout { gap: 28px !important; }
+.df-cart-products { gap: 18px !important; }
+.df-cart-product {
+  position: relative !important;
+  grid-template-columns: 148px minmax(0, 1fr) 132px 140px !important;
+  gap: 22px !important;
+  padding: 18px !important;
+  border: 1px solid #e9dfe2 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 30px rgba(50, 20, 30, .045) !important;
+  background: #fff !important;
+}
+.df-cart-image {
+  width: 148px !important;
+  height: 148px !important;
+  min-width: 148px !important;
+  max-width: 148px !important;
+  border-radius: 14px !important;
+  background: #f8f4f2 !important;
+}
+.df-cart-info { align-self: center !important; }
+.df-cart-name { margin-bottom: 12px !important; font-size: 21px !important; line-height: 1.25 !important; }
+.df-cart-unit { font-size: 17px !important; }
+.df-cart-unit span { font-size: 13px !important; font-weight: 600 !important; }
+.df-cart-availability { margin-top: 10px !important; font-size: 13px !important; }
+.df-cart-quantity { align-self: center !important; }
+.df-cart-quantity > span { font-size: 12px !important; text-transform: uppercase !important; letter-spacing: .06em !important; }
+.df-cart-stepper { width: 126px !important; }
+.df-cart-stepper button { height: 42px !important; width: 38px !important; min-width: 38px !important; border-color: #d8cbd0 !important; }
+.df-cart-stepper input { height: 42px !important; width: 50px !important; min-width: 50px !important; font-size: 16px !important; }
+.df-cart-total { justify-content: space-between !important; padding: 2px 0 !important; }
+.df-cart-total strong { font-size: 20px !important; }
+.df-cart-total button { padding: 9px 13px !important; font-size: 13px !important; transition: background .2s, border-color .2s !important; }
+.df-cart-total button:hover { background: #fff4f7 !important; border-color: #98234d !important; }
+.df-cart-summary {
+  top: 104px !important;
+  padding: 26px !important;
+  border-radius: 20px !important;
+  box-shadow: 0 10px 30px rgba(50, 20, 30, .05) !important;
+}
+.df-cart-summary h2 { margin-bottom: 24px !important; font-size: 21px !important; }
+.df-cart-summary-row span { font-size: 17px !important; }
+.df-cart-summary-row strong { font-size: 27px !important; }
+.df-cart-summary p { margin: 18px 0 24px !important; }
+.df-cart-primary { min-height: 54px !important; border-radius: 12px !important; font-size: 15px !important; box-shadow: 0 8px 16px rgba(152, 35, 77, .16) !important; transition: transform .2s, box-shadow .2s !important; }
+.df-cart-primary:hover { transform: translateY(-1px) !important; box-shadow: 0 10px 20px rgba(152, 35, 77, .22) !important; }
+@media (max-width: 900px) {
+  .df-cart-page { width: min(680px, calc(100% - 32px)) !important; margin-top: 32px !important; }
+  .df-cart-layout { display: flex !important; flex-direction: column !important; }
+  .df-cart-summary { width: 100% !important; }
+}
+@media (max-width: 600px) {
+  .df-cart-page { width: calc(100% - 24px) !important; margin: 24px auto 110px !important; }
+  .df-cart-heading { margin-bottom: 20px !important; padding-bottom: 18px !important; }
+  .df-cart-heading h1 { font-size: 48px !important; }
+  .df-cart-heading p { font-size: 16px !important; }
+  .df-cart-back { margin-top: 16px !important; padding: 8px 0 !important; }
+  .df-cart-products { gap: 14px !important; }
+  .df-cart-product {
+    grid-template-columns: 92px minmax(0, 1fr) !important;
+    gap: 14px !important;
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+  .df-cart-image { width: 92px !important; height: 92px !important; min-width: 92px !important; max-width: 92px !important; border-radius: 12px !important; }
+  .df-cart-name { margin-bottom: 7px !important; font-size: 18px !important; line-height: 1.2 !important; }
+  .df-cart-unit { font-size: 15px !important; }
+  .df-cart-unit span { font-size: 11px !important; }
+  .df-cart-availability { margin-top: 7px !important; font-size: 12px !important; }
+  .df-cart-quantity { grid-column: 2 !important; align-items: flex-start !important; gap: 6px !important; }
+  .df-cart-stepper { width: 116px !important; }
+  .df-cart-stepper button { width: 36px !important; min-width: 36px !important; height: 38px !important; }
+  .df-cart-stepper input { width: 44px !important; min-width: 44px !important; height: 38px !important; }
+  .df-cart-total { grid-column: 1 / -1 !important; flex-direction: row !important; align-items: center !important; border-top: 1px solid #eee5e7 !important; padding-top: 13px !important; margin-top: 2px !important; }
+  .df-cart-total strong { font-size: 19px !important; }
+  .df-cart-total button { padding: 8px 12px !important; }
+  .df-cart-summary { padding: 20px !important; border-radius: 18px !important; }
+  .df-cart-summary h2 { font-size: 19px !important; }
+  .df-cart-summary-row strong { font-size: 24px !important; }
+}
