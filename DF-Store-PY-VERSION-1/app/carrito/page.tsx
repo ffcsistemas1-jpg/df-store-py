@@ -65,7 +65,7 @@ export default function Cart() {
       <header className="cart-heading-pro">
         <small>COMPRA</small>
         <h1>Carrito</h1>
-        <p className="muted">Revisá tus productos antes de continuar.</p>
+        <p className="muted">Revisá tus productos antes de confirmar tu compra.</p>
         <Link className="cart-continue-link" href="/catalogo">← Seguir comprando</Link>
       </header>
 
@@ -115,9 +115,19 @@ export default function Cart() {
           <span>Subtotal</span>
           <strong>{money(subtotal)}</strong>
         </div>
-        <p className="muted">El costo de entrega se calculará en el checkout.</p>
-        <Link className="btn cart-checkout-pro" href="/checkout">Continuar al checkout</Link>
+        <p className="muted">El costo de entrega se calculará al completar los datos de compra.</p>
+        <Link className="btn cart-checkout-pro" href="/checkout">Comprar ahora</Link>
       </aside>
+
+      <div className="cart-mobile-bottom-space" aria-hidden="true" />
+      <div className="cart-mobile-buybar" role="region" aria-label="Acción de compra">
+        <div className="cart-mobile-total">
+          <span>Total</span>
+          <strong>{money(subtotal)}</strong>
+        </div>
+        <Link className="cart-mobile-cart-icon" href="/carrito" aria-label="Ver carrito">🛒</Link>
+        <Link className="btn cart-mobile-buy" href="/checkout">Comprar ahora</Link>
+      </div>
 
       <style jsx>{`
         .cart-page-pro { max-width: 1080px; margin: 42px auto; padding: 0 24px; }
@@ -154,6 +164,7 @@ export default function Cart() {
         .cart-summary-line-pro strong { color: #98234d; font-size: 30px; }
         .cart-summary-pro p { margin: 12px 0 18px; }
         .cart-checkout-pro { display: block; width: 100%; text-align: center; padding: 16px 20px; font-size: 17px; }
+        .cart-mobile-buybar, .cart-mobile-bottom-space { display: none; }
         @media (max-width: 700px) {
           .cart-page-pro { margin: 26px auto; padding: 0 14px; }
           .cart-heading-pro { margin-bottom: 22px; }
@@ -177,6 +188,14 @@ export default function Cart() {
           .cart-summary-pro { padding: 18px; margin-top: 18px; }
           .cart-summary-line-pro { font-size: 19px; }
           .cart-summary-line-pro strong { font-size: 24px; }
+          .cart-summary-pro .cart-checkout-pro { display: none; }
+          .cart-mobile-bottom-space { display: block; height: 92px; }
+          .cart-mobile-buybar { position: fixed; z-index: 50; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px; padding: 10px; background: #fff; border: 1px solid #ded4d6; border-radius: 18px; box-shadow: 0 8px 28px rgba(33, 23, 26, .16); }
+          .cart-mobile-total { min-width: 0; display: flex; flex-direction: column; line-height: 1.1; margin-left: 2px; }
+          .cart-mobile-total span { color: #71686a; font-size: 11px; font-weight: 700; }
+          .cart-mobile-total strong { color: #21171a; font-size: 16px; white-space: nowrap; }
+          .cart-mobile-cart-icon { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; border: 1px solid #98234d; border-radius: 12px; background: #fff; font-size: 23px; text-decoration: none; }
+          .cart-mobile-buy { flex: 1; min-height: 48px; display: flex; align-items: center; justify-content: center; padding: 10px 14px; border-radius: 12px; background: #98234d; color: #fff; font-size: 16px; font-weight: 800; text-align: center; }
         }
       `}</style>
     </section>
