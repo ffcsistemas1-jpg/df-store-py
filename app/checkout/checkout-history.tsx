@@ -3,101 +3,126 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Makes the checkout's React steps behave like browser-history screens.
- * This also contains a fallback for Android browsers that emit popstate with
- * the previous page's state instead of the checkout state.
+ * Checkout has three React views inside one URL. This component gives each
+ * view a browser-history entry so Android's physical Back button moves one
+ * checkout step at a time instead of immediately returning to the cart.
+ *
+ * Important: this is deliberately based on the rendered checkout marker and
+ * the real React "Volver" control. It never changes the URL or reloads the
+ * checkout, so form data and the current checkout session remain intact.
  */
 export default function CheckoutHistory() {
-  const stepRef = useRef(1);
-  const handlingRef = useRef(false);
+  const currentStepRef = useRef(1);
+  const handlingBackRef = useRef(false);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
-    const readStep = () => {
+    const readRenderedStep = () => {
       const text = document.body?.innerText || "";
-      const match = text.match(/\bPASO\s*(?:N.º?\s*)?(1|2|3)\s*DE\s*3\b/i);
+      const match = text.match(/\bPASO\s*(?:N[.º°]?\s*)?(1|2|3)\s*DE\s*3\b/i);
       return match ? Number(match[1]) : 0;
     };
 
-    const stateFor = (step: number) => ({
+    const makeState = (step: number) => ({
       ...(window.history.state || {}),
       __dfCheckout: true,
       __dfCheckoutStep: step,
     });
 
-    const findBackButton = () => {
-      const buttons = Array.from(document.querySelectorAll("button")) as HTMLButtonElement[];
-      const visible = buttons.filter((button) => {
-        if (button.disabled) return false;
-        const rect = button.getBoundingClientRect();
-        return rect.width > 0 && rect.height > 0;
-      });
-      return (
-        visible.find((button) => /^\s*volver\s*$/i.test(button.textContent || "")) ||
-        visible.find((button) => /\bvolver\b|\batr[aá]s\b/i.test(button.textContent || ""))
-      );
+    const isVisible = (element: HTMLElement) => {
+      const style = window.getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
     };
 
-    const initial = readStep() || 1;
-    stepRef.current = initial;
-    window.history.replaceState(stateFor(initial), "", window.location.href);
+    const findReactBackControl = () => {
+      const elements = Array.from(document.querySelectorAll("button, [role='button']")) as HTMLElement[];
+      const visible = elements.filter((element) => !element.hasAttribute("disabled") && isVisible(element));
 
-    const syncStep = () => {
-      if (handlingRef.current) return;
-      const rendered = readStep();
-      if (!rendered || rendered === stepRef.current) return;
+      // Prefer an explicit checkout back control when one exists.
+      const explicit = visible.find((element) => {
+        const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+        const aria = element.getAttribute("aria-label") || "";
+        const testId = element.getAttribute("data-testid") || "";
+        return /checkout.*back|back.*checkout|checkout.*volver|volver.*checkout/i.test(`${aria} ${testId}`) || /^\s*volver\s*$/i.test(text);
+      });
+      if (explicit) return explicit;
 
-      if (rendered === stepRef.current + 1) {
-        stepRef.current = rendered;
-        window.history.pushState(stateFor(rendered), "", window.location.href);
-      } else if (rendered < stepRef.current) {
-        stepRef.current = rendered;
-        window.history.replaceState(stateFor(rendered), "", window.location.href);
+      // Fallback for the existing Spanish checkout labels.
+      return visible.find((element) => /\bvolver\b|\bat r[aá]s\b|\batras\b/i.test(element.textContent || ""));
+    };
+
+    const clickBackControl = () => {
+      const control = findReactBackControl();
+      if (!control) return false;
+      control.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+      return true;
+    };
+
+    const initialStep = readRenderedStep() || 1;
+    currentStepRef.current = initialStep;
+    window.history.replaceState(makeState(initialStep), "", window.location.href);
+    initializedRef.current = true;
+
+    const syncHistoryToRenderedStep = () => {
+      if (!initializedRef.current || handlingBackRef.current) return;
+      const renderedStep = readRenderedStep();
+      if (!renderedStep || renderedStep === currentStepRef.current) return;
+
+      if (renderedStep > currentStepRef.current) {
+        // Every forward transition gets exactly one new history entry.
+        currentStepRef.current = renderedStep;
+        window.history.pushState(makeState(renderedStep), "", window.location.href);
+      } else {
+        // A click on the visible Volver button already changed React state.
+        // Keep the current entry aligned without adding a duplicate entry.
+        currentStepRef.current = renderedStep;
+        window.history.replaceState(makeState(renderedStep), "", window.location.href);
       }
     };
 
-    const observer = new MutationObserver(syncStep);
+    const observer = new MutationObserver(syncHistoryToRenderedStep);
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    const poll = window.setInterval(syncStep, 100);
+    const poll = window.setInterval(syncHistoryToRenderedStep, 150);
 
     const onPopState = (event: PopStateEvent) => {
-      if (handlingRef.current) return;
+      if (handlingBackRef.current || currentStepRef.current <= 1) return;
 
-      const target = Number(event.state?.__dfCheckoutStep || 0);
+      const targetStep = Number(event.state?.__dfCheckoutStep || 0);
+      const isCheckoutHistoryBack = Boolean(event.state?.__dfCheckout && targetStep < currentStepRef.current);
 
-      // Normal checkout history: go to the previous React step.
-      if (event.state?.__dfCheckout && target > 0 && target < stepRef.current) {
-        handlingRef.current = true;
-        stepRef.current = target;
-        const button = findBackButton();
-        if (button) button.click();
-        window.setTimeout(() => {
-          window.history.replaceState(stateFor(readStep() || target), "", window.location.href);
-          handlingRef.current = false;
-        }, 400);
-        return;
+      // Android/Chrome may return the previous cart entry without our custom
+      // state. In both cases, immediately restore the current checkout entry.
+      // This prevents the browser from leaving /checkout before React moves one
+      // internal step backward.
+      if (isCheckoutHistoryBack || !event.state?.__dfCheckout) {
+        const previousStep = currentStepRef.current;
+        handlingBackRef.current = true;
+        window.history.pushState(makeState(previousStep), "", window.location.href);
+
+        // React may still be rendering the previous view when popstate fires.
+        // Retry briefly instead of assuming a button is already in the DOM.
+        let attempts = 0;
+        const tryBack = () => {
+          attempts += 1;
+          if (clickBackControl() || attempts >= 8) {
+            window.setTimeout(() => {
+              const rendered = readRenderedStep();
+              const nextStep = rendered > 0 && rendered < previousStep ? rendered : Math.max(1, previousStep - 1);
+              currentStepRef.current = nextStep;
+              window.history.replaceState(makeState(nextStep), "", window.location.href);
+              handlingBackRef.current = false;
+            }, 180);
+            return;
+          }
+          window.setTimeout(tryBack, 60);
+        };
+        tryBack();
       }
-
-      // Android fallback: some browsers return the cart/page state directly.
-      // Restore the checkout entry, then invoke the real React back action.
-      // This prevents leaving checkout while steps 2 or 3 are still active.
-      if (stepRef.current > 1) {
-        handlingRef.current = true;
-        window.history.pushState(stateFor(stepRef.current), "", window.location.href);
-        const button = findBackButton();
-        if (button) button.click();
-        window.setTimeout(() => {
-          const rendered = readStep();
-          const next = rendered && rendered < stepRef.current ? rendered : Math.max(1, stepRef.current - 1);
-          stepRef.current = next;
-          window.history.replaceState(stateFor(next), "", window.location.href);
-          handlingRef.current = false;
-        }, 450);
-      }
-      // At step 1, the physical Back button is intentionally allowed to leave
-      // checkout and return to the cart/previous page.
     };
 
     window.addEventListener("popstate", onPopState);
+
     return () => {
       observer.disconnect();
       window.clearInterval(poll);
