@@ -4,60 +4,77 @@ import { useEffect, useRef } from "react";
 
 /** Keeps Android/browser back inside the three checkout steps. */
 export default function CheckoutHistory() {
-  const lastStep = useRef(0);
+  const currentStep = useRef(1);
   const handlingPop = useRef(false);
 
   useEffect(() => {
-    const readStep = () => {
-      const match = document.body.innerText.match(/PASO\s+(1|2|3)\s+DE\s+3/i);
-      return match ? Number(match[1]) : 0;
-    };
-
     const makeState = (step: number) => ({
       ...(window.history.state || {}),
       __dfCheckout: true,
       checkoutStep: step,
     });
 
-    const initial = readStep() || 1;
-    lastStep.current = initial;
-    window.history.replaceState(makeState(initial), "", window.location.href);
+    // The checkout starts at step 1. Forward navigation is registered from
+    // the actual CONTINUAR click instead of trying to infer React state from
+    // rendered text, which is unreliable on mobile browsers.
+    currentStep.current = 1;
+    window.history.replaceState(makeState(1), "", window.location.href);
 
-    const findBackButton = () => Array.from(document.querySelectorAll("button"))
-      .find((button) => /^\s*volver\s*$/i.test(button.textContent || "")) as HTMLButtonElement | undefined;
+    const getButton = (pattern: RegExp) => Array.from(document.querySelectorAll("button"))
+      .find((button) => pattern.test((button.textContent || "").trim())) as HTMLButtonElement | undefined;
 
-    const observer = new MutationObserver(() => {
-      if (handlingPop.current) return;
-      const visible = readStep();
-      if (!visible || visible === lastStep.current) return;
+    const onClickCapture = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const button = target?.closest("button");
+      if (!button) return;
 
-      // Only record forward transitions. Never call history.go() here.
-      if (visible > lastStep.current) {
-        window.history.pushState(makeState(visible), "", window.location.href);
+      const label = (button.textContent || "").trim();
+
+      // Register a real browser-history entry before React changes the step.
+      if (/continuar/i.test(label) && currentStep.current < 3) {
+        const nextStep = currentStep.current + 1;
+        currentStep.current = nextStep;
+        window.history.pushState(makeState(nextStep), "", window.location.href);
+        return;
       }
-      lastStep.current = visible;
-    });
 
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-
-    const onPopState = (event: PopStateEvent) => {
-      const target = Number(event.state?.checkoutStep || 0);
-      const visible = readStep() || lastStep.current;
-
-      // A state without our marker means the user is leaving checkout.
-      if (!target || !event.state?.__dfCheckout) return;
-      if (target >= visible) return;
-
-      handlingPop.current = true;
-      lastStep.current = target;
-      const back = findBackButton();
-      if (back) back.click();
-      window.setTimeout(() => { handlingPop.current = false; }, 150);
+      // Make the visible Volver button use the same history mechanism. This
+      // keeps the physical Android button and the on-screen button aligned.
+      if (/volver/i.test(label) && currentStep.current > 1 && !handlingPop.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.history.back();
+      }
     };
 
+    const onPopState = (event: PopStateEvent) => {
+      const targetStep = Number(event.state?.checkoutStep || 0);
+
+      // If the state belongs to the page before checkout, allow the browser
+      // to leave checkout normally (step 1 -> cart).
+      if (!event.state?.__dfCheckout || !targetStep) return;
+      if (targetStep >= currentStep.current) return;
+
+      currentStep.current = targetStep;
+      handlingPop.current = true;
+
+      // Trigger the existing React Volver action so all checkout state and
+      // validation behavior remains unchanged.
+      const backButton = getButton(/volver/i);
+      if (backButton) {
+        backButton.click();
+      }
+
+      window.setTimeout(() => {
+        handlingPop.current = false;
+      }, 300);
+    };
+
+    document.addEventListener("click", onClickCapture, true);
     window.addEventListener("popstate", onPopState);
+
     return () => {
-      observer.disconnect();
+      document.removeEventListener("click", onClickCapture, true);
       window.removeEventListener("popstate", onPopState);
     };
   }, []);
