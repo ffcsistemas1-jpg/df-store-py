@@ -16,7 +16,7 @@ export default function Cart(){
        const ids=items.map(i=>i.id).filter(id=>!id.startsWith("demo-"));
        if(ids.length){
          const {data,error}=await createClient().from("products").select("id,stock,active").in("id",ids);
-         if(!cancelled && !error && Array.isArray(data) && data.length === ids.length){
+         if(!cancelled && !error && Array.isArray(data) && data.length===ids.length){
            const stocks:Record<string,number>={};
            for(const row of data) if(row.active) stocks[row.id]=Number(row.stock)||0;
            syncStock(stocks);
@@ -28,17 +28,60 @@ export default function Cart(){
    check();
    return()=>{cancelled=true};
  },[items.length]);
- if(!items.length)return <section><small>COMPRA</small><h1>Carrito</h1><div className="empty"><h2>Tu carrito está vacío</h2><p>Agregá productos del catálogo para continuar.</p><Link className="btn" href="/catalogo">Ir al catálogo</Link></div></section>;
- return <section>
+ if(!items.length)return <section className="cart-page"><small>COMPRA</small><h1>Carrito</h1><div className="empty"><h2>Tu carrito está vacío</h2><p>Agregá productos del catálogo para continuar.</p><Link className="btn" href="/catalogo">Ir al catálogo</Link></div></section>;
+ return <section className="cart-page">
    {checkingStock&&<p className="muted" role="status">Verificando disponibilidad...</p>}
-   <div className="title"><div><small>COMPRA</small><h1>Carrito</h1><p className="muted">Revisá tus productos antes de continuar.</p></div><Link href="/catalogo">← Seguir comprando</Link></div>
-   <div className="cart-list">
-    {items.map(i=><div className="cart-row" key={i.id}>
-      <Link href={`/catalogo/${i.id}`} className="cart-thumb">{i.image_url?<img src={i.image_url} alt={i.name}/>:<b>DF</b>}</Link>
-      <div className="cart-info"><Link href={`/catalogo/${i.id}`}><h3>{i.name}</h3></Link><span>{money(i.price)} c/u</span><label>Cantidad<div className="qty"><button type="button" aria-label={`Disminuir ${i.name}`} onClick={()=>update(i.id,i.quantity-1)} disabled={i.quantity<=1}>−</button><input aria-label={`Cantidad de ${i.name}`} type="number" min="1" max={i.stock||1} value={i.quantity} onChange={e=>update(i.id,Number(e.target.value)||1)}/><button type="button" aria-label={`Aumentar ${i.name}`} onClick={()=>update(i.id,i.quantity+1)} disabled={i.quantity>=i.stock}>+</button></div></label><small className="muted">{i.stock>0?`${i.stock} disponibles`:"Sin stock"}</small></div>
-      <strong>{money(i.price*i.quantity)}</strong><button className="link-btn" onClick={()=>remove(i.id)}>Eliminar</button>
-    </div>)}
+   <div className="title cart-title"><div><small>COMPRA</small><h1>Carrito</h1><p className="muted">Revisá tus productos antes de continuar.</p></div><Link href="/catalogo">← Seguir comprando</Link></div>
+   <div className="cart-list-fixed">
+    {items.map(i=><article className="cart-row-fixed" key={i.id}>
+      <Link href={`/catalogo/${i.id}`} className="cart-thumb-fixed">{i.image_url?<img src={i.image_url} alt={i.name}/>:<b>DF</b>}</Link>
+      <div className="cart-info-fixed"><Link href={`/catalogo/${i.id}`}><h3>{i.name}</h3></Link><span className="cart-unit-price">{money(i.price)} <small>c/u</small></span><div className="cart-quantity"><span>Cantidad</span><div className="qty-fixed"><button type="button" aria-label={`Disminuir ${i.name}`} onClick={()=>update(i.id,i.quantity-1)} disabled={i.quantity<=1}>−</button><input aria-label={`Cantidad de ${i.name}`} type="number" min="1" max={i.stock||1} value={i.quantity} onChange={e=>update(i.id,Number(e.target.value)||1)}/><button type="button" aria-label={`Aumentar ${i.name}`} onClick={()=>update(i.id,i.quantity+1)} disabled={i.quantity>=i.stock}>+</button></div></div><small className="muted stock-line">{i.stock>0?`${i.stock} disponibles`:"Sin stock"}</small></div>
+      <div className="cart-line-total"><strong>{money(i.price*i.quantity)}</strong><button className="link-btn" onClick={()=>remove(i.id)}>Eliminar</button></div>
+    </article>)}
    </div>
-   <div className="cart-summary panel"><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><p className="muted">El costo de entrega se calculará en el checkout.</p><Link className="btn" href="/checkout" aria-disabled={checkingStock}>Continuar al checkout</Link></div>
+   <div className="cart-summary-fixed panel"><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><p className="muted">El costo de entrega se calculará en el checkout.</p><Link className="btn" href="/checkout" aria-disabled={checkingStock}>Continuar al checkout</Link></div>
+   <style jsx>{`
+    .cart-page{max-width:1180px;margin:45px auto;padding:0 24px}
+    .cart-title{margin-bottom:24px}
+    .cart-list-fixed{display:flex;flex-direction:column;gap:14px}
+    .cart-row-fixed{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:20px;align-items:center;background:#fff;border:1px solid #eadfe0;border-radius:18px;padding:18px;min-width:0}
+    .cart-thumb-fixed{width:150px;height:150px;border-radius:12px;background:#f5efeb;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .cart-thumb-fixed img{display:block;width:100%;height:100%;object-fit:contain;max-width:100%;max-height:100%}
+    .cart-thumb-fixed b{font:700 48px Georgia;color:#98234d}
+    .cart-info-fixed{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+    .cart-info-fixed h3{margin:0;font-size:20px;overflow-wrap:anywhere}
+    .cart-unit-price{font-weight:800;color:#5c5557}
+    .cart-unit-price small{color:inherit;letter-spacing:0;font-weight:700}
+    .cart-quantity{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-weight:800}
+    .qty-fixed{display:flex;align-items:center;gap:0}
+    .qty-fixed button{width:38px;height:38px;border:1px solid #bcaeb1;background:#fff;font-size:22px;cursor:pointer}
+    .qty-fixed button:first-child{border-radius:8px 0 0 8px}
+    .qty-fixed button:last-child{border-radius:0 8px 8px 0}
+    .qty-fixed button:disabled{opacity:.45;cursor:not-allowed}
+    .qty-fixed input{width:52px;height:38px;border:1px solid #bcaeb1;border-left:0;border-right:0;text-align:center;font:inherit;background:#fff}
+    .stock-line{letter-spacing:0;font-weight:600}
+    .cart-line-total{display:flex;flex-direction:column;align-items:flex-end;gap:18px;white-space:nowrap}
+    .cart-line-total strong{font-size:21px}
+    .cart-summary-fixed{margin-top:20px}
+    .cart-summary-fixed>div{display:flex;justify-content:space-between;align-items:center;gap:15px;font-size:20px}
+    .cart-summary-fixed>div strong{font-size:24px;color:#98234d}
+    @media(max-width:700px){
+      .cart-page{margin:24px auto;padding:0 16px}
+      .cart-title{align-items:flex-start;flex-direction:column;gap:10px}
+      .cart-title h1{font-size:38px;margin:8px 0}
+      .cart-row-fixed{grid-template-columns:88px minmax(0,1fr);gap:12px;padding:12px;align-items:start}
+      .cart-thumb-fixed{width:88px;height:88px}
+      .cart-thumb-fixed b{font-size:32px}
+      .cart-info-fixed h3{font-size:17px;line-height:1.2}
+      .cart-quantity{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+      .qty-fixed button{width:32px;height:34px}
+      .qty-fixed input{width:42px;height:34px}
+      .cart-line-total{grid-column:2;flex-direction:row;align-items:center;justify-content:space-between;border-top:1px solid #eadfe0;padding-top:10px;width:100%;gap:10px}
+      .cart-line-total strong{font-size:18px}
+      .cart-summary-fixed{padding:18px}
+      .cart-summary-fixed>div{font-size:18px}
+      .cart-summary-fixed>div strong{font-size:21px}
+    }
+   `}</style>
  </section>;
 }
