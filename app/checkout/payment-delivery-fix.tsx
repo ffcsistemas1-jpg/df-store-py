@@ -25,7 +25,7 @@ export default function PaymentDeliveryFix() {
     const apply = () => {
       const payment = Array.from(document.querySelectorAll<HTMLSelectElement>("select")).find((select) => {
         const values = Array.from(select.options).map((option) => option.value.toLowerCase());
-        return values.includes("pago al recibir".toLowerCase()) &&
+        return values.includes("pago al recibir") &&
           values.some((value) => value === "transferencia" || value === "transferencia bancaria") &&
           values.includes("giro tigo");
       });
@@ -37,29 +37,38 @@ export default function PaymentDeliveryFix() {
         (option) => option.value.toLowerCase() === "pago al recibir"
       );
 
+      // Agregamos un estado neutro para obligar a elegir el método en interior.
+      let placeholder = Array.from(payment.options).find((option) => option.value === "");
+      if (!placeholder) {
+        placeholder = document.createElement("option");
+        placeholder.value = "";
+        payment.insertBefore(placeholder, payment.firstChild);
+      }
+      placeholder.textContent = "Elegí un método de pago";
+      placeholder.disabled = false;
+      placeholder.hidden = false;
+
       if (cashOption) {
-        // hidden + disabled lo elimina de las opciones visibles del selector
-        // nativo de Android/iOS, sin romper el formulario controlado por React.
+        // En un selector nativo de Android/iOS, hidden + disabled evita que
+        // Pago al recibir aparezca como alternativa para envíos al interior.
         cashOption.hidden = interior;
         cashOption.disabled = interior;
       }
 
+      payment.disabled = false;
+
       if (interior) {
-        payment.disabled = false;
         if (payment.value.toLowerCase() === "pago al recibir") {
           syncing = true;
           payment.value = "";
           payment.dispatchEvent(new Event("change", { bubbles: true }));
           window.setTimeout(() => { syncing = false; }, 0);
         }
-      } else {
-        payment.disabled = false;
-        if (!payment.value || payment.value.toLowerCase() !== "pago al recibir") {
-          syncing = true;
-          payment.value = "Pago al recibir";
-          payment.dispatchEvent(new Event("change", { bubbles: true }));
-          window.setTimeout(() => { syncing = false; }, 0);
-        }
+      } else if (!payment.value || payment.value.toLowerCase() !== "pago al recibir") {
+        syncing = true;
+        payment.value = "Pago al recibir";
+        payment.dispatchEvent(new Event("change", { bubbles: true }));
+        window.setTimeout(() => { syncing = false; }, 0);
       }
     };
 
