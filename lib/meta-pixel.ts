@@ -1,8 +1,9 @@
 "use client";
 
-// Envoltorio para el Meta Pixel (navegador) + Conversions API (servidor),
-// con deduplicación por event_id. No hace nada si falta configuración
-// (NEXT_PUBLIC_META_PIXEL_ID) — nunca rompe la tienda ni el checkout.
+// Envoltorio para el Meta Pixel (navegador) + Conversions API (servidor).
+// Los pedidos creados desde checkout no se reportan como Purchase hasta que
+// exista una confirmación real desde administración. Esto evita contaminar
+// las métricas de Meta con pruebas, pedidos pendientes o abandonos.
 
 declare global {
   interface Window {
@@ -19,9 +20,6 @@ export type PixelEvent =
   | "InitiateCheckout"
   | "Purchase";
 
-// Genera un event_id estable para deduplicar Pixel (navegador) y CAPI
-// (servidor) del mismo evento. Meta descarta el duplicado automáticamente
-// cuando ambos llegan con el mismo event_id.
 export function newEventId() {
   try {
     return crypto.randomUUID();
@@ -30,20 +28,23 @@ export function newEventId() {
   }
 }
 
+/**
+ * Purchase queda bloqueado en el navegador mientras el pedido esté solamente
+ * creado/pendiente. Se conserva la firma para no romper el checkout existente.
+ * Los eventos de navegación y embudo siguen funcionando normalmente.
+ */
 export function pixelTrack(event: PixelEvent, params?: Record<string, any>, eventId?: string) {
   if (typeof window === "undefined" || !window.fbq) return;
   try {
-    if (eventId) window.fbq("track", event, params || {}, { eventID: eventId });
-    else window.fbq("track", event, params || {});
+    const safeEvent = event === "Purchase" ? "Lead" : event;
+    if (eventId) window.fbq("track", safeEvent, params || {}, { eventID: eventId });
+    else window.fbq("track", safeEvent, params || {});
   } catch {
     // Nunca dejar que un error de tracking rompa la compra.
   }
 }
 
 // ---------- Atribución (UTM + fbclid) ----------
-// Modelo "primer contacto": se guarda la primera vez que alguien entra desde
-// un anuncio/link con parámetros, y se mantiene durante toda la sesión de
-// compra aunque después navegue sin esos parámetros en la URL.
 const ATTR_KEY = "df_attr_v1";
 
 export type Attribution = {
@@ -92,9 +93,8 @@ export function getAttribution(): Attribution & { fbp?: string; fbc?: string } {
 }
 
 // ---------- Conversions API (servidor) ----------
-// Envía el mismo evento a nuestro backend, que lo reenvía a Meta con los
-// datos hasheados. Se llama SIEMPRE junto con pixelTrack, con el mismo
-// event_id, para que Meta deduplique Pixel + CAPI.
+// Por seguridad, un pedido recién creado no se envía como Purchase. Se envía
+// como Lead hasta que administración implemente la confirmación de pago/venta.
 export async function sendCapiEvent(params: {
   event_name: PixelEvent;
   event_id: string;
@@ -108,11 +108,13 @@ export async function sendCapiEvent(params: {
 }) {
   try {
     const attribution = getAttribution();
+    const safeEventName = params.event_name === "Purchase" ? "Lead" : params.event_name;
     await fetch("/api/meta-capi", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...params,
+        event_name: safeEventName,
         event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
         fbp: attribution.fbp,
         fbc: attribution.fbc,
