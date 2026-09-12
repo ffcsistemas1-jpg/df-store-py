@@ -1,89 +1,273 @@
 "use client";
+
 import Link from "next/link";
 import { useCart } from "../ui";
 import { useEffect, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
-const money=(n:number)=>`₲ ${n.toLocaleString("es-PY")}`;
 
-export default function Cart(){
- const {items,remove,update,subtotal,syncStock}=useCart();
- const [checkingStock,setCheckingStock]=useState(true);
- useEffect(()=>{
-   let cancelled=false;
-   async function check(){
-     if(!items.length){setCheckingStock(false);return;}
-     try{
-       const ids=items.map(i=>i.id).filter(id=>!id.startsWith("demo-"));
-       if(ids.length){
-         const {data,error}=await createClient().from("products").select("id,stock,active").in("id",ids);
-         if(!cancelled && !error && Array.isArray(data) && data.length===ids.length){
-           const stocks:Record<string,number>={};
-           for(const row of data) if(row.active) stocks[row.id]=Number(row.stock)||0;
-           syncStock(stocks);
-         }
-       }
-     }catch{}
-     if(!cancelled)setCheckingStock(false);
-   }
-   check();
-   return()=>{cancelled=true};
- },[items.length]);
- if(!items.length)return <section className="cart-page"><small>COMPRA</small><h1>Carrito</h1><div className="empty"><h2>Tu carrito está vacío</h2><p>Agregá productos del catálogo para continuar.</p><Link className="btn" href="/catalogo">Ir al catálogo</Link></div></section>;
- return <section className="cart-page">
-   {checkingStock&&<p className="muted" role="status">Verificando disponibilidad...</p>}
-   <div className="title cart-title"><div><small>COMPRA</small><h1>Carrito</h1><p className="muted">Revisá tus productos antes de continuar.</p></div><Link href="/catalogo">← Seguir comprando</Link></div>
-   <div className="cart-list-fixed">
-    {items.map(i=><article className="cart-row-fixed" key={i.id}>
-      <Link href={`/catalogo/${i.id}`} className="cart-thumb-fixed">{i.image_url?<img src={i.image_url} alt={i.name}/>:<b>DF</b>}</Link>
-      <div className="cart-info-fixed"><Link href={`/catalogo/${i.id}`}><h3>{i.name}</h3></Link><span className="cart-unit-price">{money(i.price)} <small>c/u</small></span><div className="cart-quantity"><span>Cantidad</span><div className="qty-fixed"><button type="button" aria-label={`Disminuir ${i.name}`} onClick={()=>update(i.id,i.quantity-1)} disabled={i.quantity<=1}>−</button><input aria-label={`Cantidad de ${i.name}`} type="number" min="1" max={i.stock||1} value={i.quantity} onChange={e=>update(i.id,Number(e.target.value)||1)}/><button type="button" aria-label={`Aumentar ${i.name}`} onClick={()=>update(i.id,i.quantity+1)} disabled={i.quantity>=i.stock}>+</button></div></div><small className="muted stock-line">{i.stock>0?`${i.stock} disponibles`:"Sin stock"}</small></div>
-      <div className="cart-line-total"><strong>{money(i.price*i.quantity)}</strong><button className="link-btn" onClick={()=>remove(i.id)}>Eliminar</button></div>
-    </article>)}
-   </div>
-   <div className="cart-summary-fixed panel"><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><p className="muted">El costo de entrega se calculará en el checkout.</p><Link className="btn" href="/checkout" aria-disabled={checkingStock}>Continuar al checkout</Link></div>
-   <style jsx>{`
-    .cart-page{max-width:1180px;margin:45px auto;padding:0 24px;overflow-x:hidden}
-    .cart-title{margin-bottom:24px}
-    .cart-list-fixed{display:flex;flex-direction:column;gap:14px;width:100%;min-width:0}
-    .cart-row-fixed{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:20px;align-items:center;background:#fff;border:1px solid #eadfe0;border-radius:18px;padding:18px;min-width:0;max-width:100%;overflow:hidden;box-sizing:border-box}
-    .cart-thumb-fixed{width:150px!important;height:150px!important;min-width:150px!important;max-width:150px!important;min-height:150px!important;max-height:150px!important;aspect-ratio:1/1;border-radius:12px;background:#f5efeb;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;box-sizing:border-box}
-    .cart-thumb-fixed img{display:block!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;position:static!important}
-    .cart-thumb-fixed b{font:700 48px Georgia;color:#98234d}
-    .cart-info-fixed{min-width:0;max-width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:7px;overflow:hidden}
-    .cart-info-fixed h3{margin:0;font-size:20px;overflow-wrap:anywhere;word-break:break-word}
-    .cart-unit-price{font-weight:800;color:#5c5557}
-    .cart-unit-price small{color:inherit;letter-spacing:0;font-weight:700}
-    .cart-quantity{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-weight:800}
-    .qty-fixed{display:flex;align-items:center;gap:0}
-    .qty-fixed button{width:38px;height:38px;border:1px solid #bcaeb1;background:#fff;font-size:22px;cursor:pointer}
-    .qty-fixed button:first-child{border-radius:8px 0 0 8px}
-    .qty-fixed button:last-child{border-radius:0 8px 8px 0}
-    .qty-fixed button:disabled{opacity:.45;cursor:not-allowed}
-    .qty-fixed input{width:52px;height:38px;border:1px solid #bcaeb1;border-left:0;border-right:0;text-align:center;font:inherit;background:#fff}
-    .stock-line{letter-spacing:0;font-weight:600}
-    .cart-line-total{display:flex;flex-direction:column;align-items:flex-end;gap:18px;white-space:nowrap}
-    .cart-line-total strong{font-size:21px}
-    .cart-summary-fixed{margin-top:20px}
-    .cart-summary-fixed>div{display:flex;justify-content:space-between;align-items:center;gap:15px;font-size:20px}
-    .cart-summary-fixed>div strong{font-size:24px;color:#98234d}
-    @media(max-width:700px){
-      .cart-page{margin:24px auto;padding:0 16px;width:100%;max-width:100%;box-sizing:border-box}
-      .cart-title{align-items:flex-start;flex-direction:column;gap:10px}
-      .cart-title h1{font-size:38px;margin:8px 0}
-      .cart-row-fixed{grid-template-columns:88px minmax(0,1fr);gap:12px;padding:12px;align-items:start;width:100%;max-width:100%;overflow:hidden}
-      .cart-thumb-fixed{width:88px!important;height:88px!important;min-width:88px!important;max-width:88px!important;min-height:88px!important;max-height:88px!important}
-      .cart-thumb-fixed img{display:block!important;width:88px!important;height:88px!important;min-width:0!important;min-height:0!important;max-width:88px!important;max-height:88px!important;object-fit:contain!important;position:static!important}
-      .cart-thumb-fixed b{font-size:32px}
-      .cart-info-fixed{width:100%;min-width:0;max-width:100%;overflow:hidden}
-      .cart-info-fixed h3{font-size:17px;line-height:1.2}
-      .cart-quantity{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
-      .qty-fixed button{width:32px;height:34px}
-      .qty-fixed input{width:42px;height:34px}
-      .cart-line-total{grid-column:2;flex-direction:row;align-items:center;justify-content:space-between;border-top:1px solid #eadfe0;padding-top:10px;width:100%;gap:10px;min-width:0}
-      .cart-line-total strong{font-size:18px}
-      .cart-summary-fixed{padding:18px}
-      .cart-summary-fixed>div{font-size:18px}
-      .cart-summary-fixed>div strong{font-size:21px}
+const money = (n: number) => `₲ ${n.toLocaleString("es-PY")}`;
+
+export default function Cart() {
+  const { items, remove, update, subtotal, syncStock } = useCart();
+  const [checkingStock, setCheckingStock] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function checkStock() {
+      if (!items.length) {
+        setCheckingStock(false);
+        return;
+      }
+
+      try {
+        const ids = items.map((item) => item.id).filter((id) => !id.startsWith("demo-"));
+        if (ids.length) {
+          const { data, error } = await createClient()
+            .from("products")
+            .select("id,stock,active")
+            .in("id", ids);
+
+          if (!cancelled && !error && Array.isArray(data) && data.length === ids.length) {
+            const stocks: Record<string, number> = {};
+            for (const row of data) {
+              if (row.active) stocks[row.id] = Number(row.stock) || 0;
+            }
+            syncStock(stocks);
+          }
+        }
+      } catch {
+        // The cart remains usable even if the stock check is temporarily unavailable.
+      }
+
+      if (!cancelled) setCheckingStock(false);
     }
-   `}</style>
- </section>;
+
+    checkStock();
+    return () => {
+      cancelled = true;
+    };
+  }, [items.length, syncStock]);
+
+  if (!items.length) {
+    return (
+      <section className="cart-page">
+        <small className="eyebrow">COMPRA</small>
+        <h1>Carrito</h1>
+        <div className="empty">
+          <h2>Tu carrito está vacío</h2>
+          <p>Agregá productos del catálogo para continuar.</p>
+          <Link className="btn" href="/catalogo">Ir al catálogo</Link>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="cart-page">
+      {checkingStock && <p className="muted stock-check" role="status">Verificando disponibilidad...</p>}
+
+      <header className="cart-header">
+        <div>
+          <small className="eyebrow">COMPRA</small>
+          <h1>Carrito</h1>
+          <p className="muted">Revisá tus productos antes de continuar.</p>
+        </div>
+        <Link className="continue-shopping" href="/catalogo">← Seguir comprando</Link>
+      </header>
+
+      <div className="cart-list">
+        {items.map((item) => (
+          <article className="cart-card" key={item.id}>
+            <Link href={`/catalogo/${item.id}`} className="cart-image" aria-label={`Ver ${item.name}`}>
+              {item.image_url ? <img src={item.image_url} alt={item.name} /> : <b>DF</b>}
+            </Link>
+
+            <div className="cart-details">
+              <Link href={`/catalogo/${item.id}`} className="cart-product-link">
+                <h2>{item.name}</h2>
+              </Link>
+              <p className="unit-price">{money(item.price)} <span>c/u</span></p>
+
+              <div className="quantity-block">
+                <span className="quantity-label">Cantidad</span>
+                <div className="quantity-control">
+                  <button type="button" aria-label={`Disminuir ${item.name}`} onClick={() => update(item.id, item.quantity - 1)} disabled={item.quantity <= 1}>−</button>
+                  <input aria-label={`Cantidad de ${item.name}`} type="number" min="1" max={item.stock || 1} value={item.quantity} onChange={(event) => update(item.id, Number(event.target.value) || 1)} />
+                  <button type="button" aria-label={`Aumentar ${item.name}`} onClick={() => update(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock}>+</button>
+                </div>
+              </div>
+
+              <p className="stock-text">{item.stock > 0 ? `${item.stock} disponibles` : "Sin stock"}</p>
+            </div>
+
+            <div className="cart-actions">
+              <strong className="line-total">{money(item.price * item.quantity)}</strong>
+              <button type="button" className="remove-button" onClick={() => remove(item.id)}>Eliminar</button>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <aside className="cart-summary panel">
+        <div className="summary-row">
+          <span>Subtotal</span>
+          <strong>{money(subtotal)}</strong>
+        </div>
+        <p className="muted">El costo de entrega se calculará en el checkout.</p>
+        <Link className="btn checkout-button" href="/checkout" aria-disabled={checkingStock}>Continuar al checkout</Link>
+      </aside>
+
+      <style jsx>{`
+        .cart-page {
+          width: min(100% - 32px, 1180px);
+          margin: 42px auto 70px;
+          min-width: 0;
+        }
+        .eyebrow {
+          display: inline-block;
+          color: #98234d;
+          font-weight: 800;
+          letter-spacing: .12em;
+          font-size: 14px;
+        }
+        .cart-page h1 {
+          margin: 8px 0 12px;
+          font-size: clamp(38px, 5vw, 58px);
+          line-height: 1;
+        }
+        .cart-header {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 24px;
+          margin-bottom: 28px;
+        }
+        .cart-header p { margin: 0; font-size: 18px; }
+        .continue-shopping { color: #292326; font-weight: 700; white-space: nowrap; }
+        .stock-check { margin-bottom: 12px; }
+        .cart-list { display: flex; flex-direction: column; gap: 16px; }
+        .cart-card {
+          display: grid;
+          grid-template-columns: 128px minmax(0, 1fr) auto;
+          align-items: center;
+          gap: 20px;
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          padding: 18px;
+          background: #fff;
+          border: 1px solid #eadfe0;
+          border-radius: 20px;
+          box-shadow: 0 5px 18px rgba(50, 20, 30, .04);
+        }
+        .cart-image {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 128px;
+          height: 128px;
+          min-width: 128px;
+          max-width: 128px;
+          min-height: 128px;
+          max-height: 128px;
+          overflow: hidden;
+          box-sizing: border-box;
+          border-radius: 14px;
+          background: #f7f1ee;
+        }
+        .cart-image img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          max-width: 100%;
+          max-height: 100%;
+          object-fit: contain;
+        }
+        .cart-image b { color: #98234d; font: 700 42px Georgia, serif; }
+        .cart-details { min-width: 0; overflow: hidden; }
+        .cart-product-link { color: inherit; text-decoration: none; }
+        .cart-details h2 {
+          margin: 0 0 8px;
+          font-size: 22px;
+          line-height: 1.2;
+          overflow-wrap: anywhere;
+        }
+        .unit-price { margin: 0 0 14px; color: #5c5557; font-weight: 800; }
+        .unit-price span { font-size: 13px; font-weight: 700; }
+        .quantity-block { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .quantity-label { font-weight: 800; }
+        .quantity-control { display: inline-flex; align-items: center; }
+        .quantity-control button,
+        .quantity-control input {
+          height: 38px;
+          box-sizing: border-box;
+          border: 1px solid #c8b8bd;
+          background: #fff;
+          text-align: center;
+        }
+        .quantity-control button { width: 38px; font-size: 22px; cursor: pointer; }
+        .quantity-control button:first-child { border-radius: 8px 0 0 8px; }
+        .quantity-control button:last-child { border-radius: 0 8px 8px 0; }
+        .quantity-control button:disabled { opacity: .45; cursor: not-allowed; }
+        .quantity-control input { width: 52px; border-left: 0; border-right: 0; font: inherit; }
+        .stock-text { margin: 8px 0 0; color: #71696c; font-size: 14px; font-weight: 600; }
+        .cart-actions { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 18px; min-width: 120px; }
+        .line-total { color: #292326; font-size: 22px; white-space: nowrap; }
+        .remove-button { border: 1px solid #c8b8bd; border-radius: 8px; padding: 8px 14px; background: #fff; color: #98234d; font-weight: 800; cursor: pointer; }
+        .cart-summary { margin-top: 20px; padding: 24px; }
+        .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 22px; }
+        .summary-row strong { color: #98234d; font-size: 28px; }
+        .cart-summary p { margin: 12px 0 20px; }
+        .checkout-button { display: inline-flex; }
+        @media (max-width: 700px) {
+          .cart-page { width: min(100% - 24px, 560px); margin-top: 26px; }
+          .cart-header { display: block; margin-bottom: 22px; }
+          .cart-header p { font-size: 16px; }
+          .continue-shopping { display: inline-block; margin-top: 16px; }
+          .cart-card {
+            grid-template-columns: 92px minmax(0, 1fr);
+            align-items: start;
+            gap: 14px;
+            padding: 12px;
+            border-radius: 16px;
+          }
+          .cart-image {
+            width: 92px;
+            height: 92px;
+            min-width: 92px;
+            max-width: 92px;
+            min-height: 92px;
+            max-height: 92px;
+            border-radius: 10px;
+          }
+          .cart-image b { font-size: 30px; }
+          .cart-details h2 { font-size: 17px; margin-bottom: 6px; }
+          .unit-price { margin-bottom: 10px; font-size: 15px; }
+          .quantity-block { display: block; }
+          .quantity-label { display: block; margin-bottom: 6px; font-size: 14px; }
+          .quantity-control button { width: 32px; height: 34px; }
+          .quantity-control input { width: 42px; height: 34px; }
+          .stock-text { margin-top: 7px; font-size: 13px; }
+          .cart-actions {
+            grid-column: 1 / -1;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            min-width: 0;
+            width: 100%;
+            padding-top: 11px;
+            border-top: 1px solid #eadfe0;
+            gap: 10px;
+          }
+          .line-total { font-size: 18px; }
+          .remove-button { padding: 7px 12px; }
+          .cart-summary { padding: 18px; }
+          .summary-row { font-size: 18px; }
+          .summary-row strong { font-size: 23px; }
+          .checkout-button { width: 100%; justify-content: center; }
+        }
+      `}</style>
+    </section>
+  );
 }
