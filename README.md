@@ -6,6 +6,7 @@ Tienda online DF Store PY (Next.js 16 + React 19 + Supabase).
 - **Agregar al carrito:** guarda el producto y permite seguir navegando por la tienda.
 - **Comprar:** agrega el producto y lleva inmediatamente al carrito.
 - El carrito conserva los productos en el navegador para que no se pierdan durante la navegación.
+- **Checkout actualizado:** flujo móvil de 3 pasos, datos mínimos, entrega y revisión antes de confirmar.
 
 ## Puesta en marcha (una sola vez)
 
