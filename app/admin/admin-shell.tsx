@@ -87,12 +87,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         .admin-mobile-actions,.admin-mobile-bottom-nav,.admin-menu-backdrop{display:none!important;}
         @media(max-width:900px){
           .admin-shell{display:block!important;max-width:none!important;margin:0!important;padding-bottom:74px!important;}
-          .admin-mobile-actions{display:flex!important;gap:10px!important;align-items:center!important;margin-bottom:14px!important;position:sticky!important;top:8px!important;z-index:45!important;background:rgba(255,255,255,.96)!important;padding:8px 0!important;}
-          .admin-mobile-toggle{display:inline-flex!important;min-height:44px!important;align-items:center!important;background:#21171a!important;color:#fff!important;border:0!important;border-radius:10px!important;padding:11px 18px!important;font-weight:700!important;font-size:14px!important;}
+          .admin-mobile-actions{display:flex!important;gap:10px!important;align-items:center!important;margin-bottom:14px!important;position:sticky!important;top:8px!important;z-index:55!important;background:rgba(255,255,255,.96)!important;padding:8px 0!important;}
+          .admin-mobile-toggle{display:inline-flex!important;min-height:44px!important;align-items:center!important;background:#21171a!important;color:#fff!important;border:0!important;border-radius:10px!important;padding:11px 18px!important;font-weight:700!important;font-size:14px!important;position:relative!important;z-index:56!important;}
           .admin-sidebar{display:none!important;position:fixed!important;inset:12px 12px 86px 12px!important;top:12px!important;width:auto!important;min-width:0!important;max-height:calc(100vh - 98px)!important;overflow:auto!important;box-shadow:0 14px 40px rgba(33,23,26,.25)!important;}
-          .admin-sidebar.open{display:flex!important;}
+          .admin-sidebar.open{display:flex!important;z-index:60!important;}
           .admin-content{width:100%!important;}
-          .admin-menu-backdrop{display:block!important;position:fixed!important;inset:0!important;z-index:41!important;border:0!important;background:rgba(20,14,16,.42)!important;}
+          .admin-menu-backdrop{display:block!important;position:fixed!important;inset:0!important;z-index:50!important;border:0!important;background:rgba(20,14,16,.42)!important;}
           .admin-mobile-bottom-nav{display:grid!important;grid-template-columns:repeat(6,1fr)!important;position:fixed!important;left:8px!important;right:8px!important;bottom:8px!important;z-index:40!important;background:#fff!important;border:1px solid #e6dadd!important;border-radius:18px!important;box-shadow:0 8px 28px rgba(33,23,26,.18)!important;overflow:hidden!important;}
           .admin-mobile-bottom-nav a,.admin-mobile-bottom-nav button{min-height:58px!important;border:0!important;background:#fff!important;color:#51454a!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:2px!important;font-weight:800!important;font-family:inherit!important;}
           .admin-mobile-bottom-nav a.active{color:#98234d!important;background:#fff7fa!important;}
