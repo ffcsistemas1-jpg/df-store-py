@@ -21,7 +21,19 @@ export default async function Product({params}:{params:Promise<{id:string}>}){
   <Link className="back" href="/catalogo">← Volver al catálogo</Link>
   <div className="product-detail-layout">
    <div className="product-detail-media"><ProductMediaGallery name={p.name} media={p.product_media||[]}/></div>
-   <div className="product-detail-info"><small>{p.category}</small><h1>{p.name}</h1><div className="price">₲ {Number(p.price).toLocaleString("es-PY")}</div><p className="product-description">{p.description||"Producto disponible en DF Store PY."}</p><p className="product-stock"><b>Stock:</b> {p.stock ?? "Consultar"}</p><AddToCartButton p={p}/></div>
+   <div className="product-detail-info">
+    <small>{p.category}</small>
+    <h1>{p.name}</h1>
+    <div className="price">₲ {Number(p.price).toLocaleString("es-PY")}</div>
+    <div className="product-actions" aria-label="Acciones de compra">
+      <AddToCartButton p={p}/>
+    </div>
+    <p className="product-stock"><b>Stock:</b> {p.stock ?? "Consultar"}</p>
+    <div className="product-description-section">
+      <h2>Descripción del producto</h2>
+      <p className="product-description">{p.description||"Producto disponible en DF Store PY."}</p>
+    </div>
+   </div>
   </div>
   <style dangerouslySetInnerHTML={{__html:`
     .product-detail-page{max-width:1180px;margin:45px auto;padding:0 24px}
@@ -30,10 +42,23 @@ export default async function Product({params}:{params:Promise<{id:string}>}){
     .product-detail-media,.product-detail-info{min-width:0}
     .product-detail-info{background:#fff;border:1px solid #eadfe0;border-radius:18px;padding:28px}
     .product-detail-info h1{font-size:clamp(32px,4vw,52px);line-height:1.05;margin:12px 0}
-    .product-detail-info .price{font-size:30px;font-weight:900;color:#98234d;margin:16px 0}
-    .product-description{font-size:17px;line-height:1.65;color:#5c5557;white-space:pre-line;overflow-wrap:anywhere}
-    .product-stock{font-size:16px;margin:22px 0}
-    @media(max-width:700px){.product-detail-page{margin:24px auto;padding:0 16px}.product-detail-layout{grid-template-columns:1fr;gap:20px}.product-detail-info{padding:20px}.product-detail-info h1{font-size:36px}.product-detail-info .price{font-size:26px}}
+    .product-detail-info .price{font-size:30px;font-weight:900;color:#98234d;margin:16px 0 20px}
+    .product-actions{display:block;width:100%;margin:0 0 20px;position:relative;z-index:2}
+    .product-actions button,.product-actions a{min-height:54px}
+    .product-stock{font-size:16px;margin:0 0 24px}
+    .product-description-section{border-top:1px solid #eee4e6;padding-top:22px}
+    .product-description-section h2{font-size:22px;margin:0 0 12px;color:#282326}
+    .product-description{font-size:17px;line-height:1.65;color:#5c5557;white-space:pre-line;overflow-wrap:anywhere;margin:0}
+    @media(max-width:700px){
+      .product-detail-page{margin:24px auto;padding:0 16px}
+      .product-detail-layout{grid-template-columns:1fr;gap:20px}
+      .product-detail-info{padding:20px}
+      .product-detail-info h1{font-size:36px}
+      .product-detail-info .price{font-size:26px}
+      .product-actions{margin-bottom:18px}
+      .product-actions button,.product-actions a{width:100%;min-height:56px}
+      .product-description-section h2{font-size:20px}
+    }
   `}} />
  </section>;
 }
