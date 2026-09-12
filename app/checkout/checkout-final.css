@@ -1,0 +1,37 @@
+/* Ajuste final del checkout: igualar el formulario al ejemplo de referencia. */
+
+/* El ejemplo no solicita correo ni muestra el bloque informativo redundante. */
+.checkout-fields label:has(input[type="email"]),
+.checkout-panel label:has(input[type="email"]),
+.delivery-info {
+  display: none !important;
+}
+
+/* Mantener la ubicación visible, pero sin el mensaje de estado repetido. */
+.location-box > span {
+  display: none !important;
+}
+
+/* La ubicación continúa funcionando mediante GPS o enlace de Google Maps. */
+.location-box {
+  margin-top: 8px;
+}
+
+/* Evitar elementos desbordados en teléfonos. */
+.checkout-section,
+.checkout-shell,
+.checkout-panel,
+.checkout-fields,
+.location-box {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.checkout-panel input,
+.checkout-panel select,
+.checkout-panel textarea,
+.checkout-fields input,
+.checkout-fields select,
+.checkout-fields textarea {
+  box-sizing: border-box;
+}
