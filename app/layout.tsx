@@ -10,6 +10,7 @@ import "./product-page-polish.css";
 import "./checkout-copy-fix.css";
 import "./admin-products-fix.css";
 import "./admin-professional.css";
+import "./cart-professional.css";
 import { CartProvider,Header,WhatsAppButton,TopBanner,ServiceWorkerRegister,SiteFooter,MobileCustomerNav } from "./ui";
 import MetaPixelRuntime from "./meta-pixel-runtime";
 import PaymentDeliveryFix from "./checkout/payment-delivery-fix";
