@@ -2,93 +2,51 @@
 
 import { useEffect } from "react";
 
-/**
- * Keeps Android/browser Back inside the checkout while there are still
- * checkout steps available. The previous implementation depended on the
- * history state created by React mutations, which is not reliable on mobile.
- */
+/** Creates real browser-history entries for the three checkout steps. */
 export default function CheckoutHistory() {
   useEffect(() => {
-    const checkoutUrl = window.location.href;
-    let currentStep = 1;
-    let syncing = false;
-    let initialized = false;
+    const url = window.location.href;
+    let applying = false;
 
-    const readStep = () => {
+    // The checkout is one URL, so create three history entries explicitly:
+    // cart -> checkout step 1 -> checkout step 2 -> checkout step 3.
+    // Then return the visible screen to step 1 without changing the URL.
+    window.history.replaceState({ ...(window.history.state || {}), __dfCheckoutStep: 1 }, "", url);
+    window.history.pushState({ __dfCheckoutStep: 2 }, "", url);
+    window.history.pushState({ __dfCheckoutStep: 3 }, "", url);
+    window.history.go(-2);
+
+    const getStep = () => {
       const text = document.body.innerText;
-      const match = text.match(/CHECKOUT\s*[·•-]\s*PASO\s+(\d+)\s+DE\s+3/i);
-      return match ? Math.max(1, Math.min(3, Number(match[1]))) : currentStep;
+      const match = text.match(/PASO\s+(\d+)\s+DE\s+3/i);
+      return match ? Number(match[1]) : 1;
     };
 
-    const writeStep = (step: number, mode: "push" | "replace" = "replace") => {
-      const state = { ...(window.history.state || {}), __dfCheckoutStep: step };
-      if (mode === "push") window.history.pushState(state, "", checkoutUrl);
-      else window.history.replaceState(state, "", checkoutUrl);
-    };
-
-    const clickPreviousStep = () => {
-      const buttons = Array.from(document.querySelectorAll("button"));
-      const button = buttons.find((item) => {
-        const label = (item.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
-        return label.startsWith("← volver") || label === "volver" || label.includes("volver al pedido");
-      }) as HTMLButtonElement | undefined;
+    const clickBack = () => {
+      const button = Array.from(document.querySelectorAll("button")).find((b) =>
+        /volver/i.test((b.textContent || "").trim())
+      ) as HTMLButtonElement | undefined;
       if (button) button.click();
     };
 
-    const detectStep = () => {
-      const detected = readStep();
-      if (!initialized) {
-        currentStep = detected;
-        writeStep(currentStep, "replace");
-        initialized = true;
-        return;
+    const onPopState = (event: PopStateEvent) => {
+      if (applying) return;
+      const target = Number(event.state?.__dfCheckoutStep || 1);
+      const visible = getStep();
+      if (target < visible && visible > 1) {
+        applying = true;
+        // The history entry has already moved back one position. Restore a
+        // checkout entry so Android cannot navigate to the cart prematurely.
+        window.history.pushState({ ...(window.history.state || {}), __dfCheckoutStep: visible }, "", url);
+        clickBack();
+        window.setTimeout(() => {
+          applying = false;
+        }, 150);
       }
-      if (syncing) {
-        currentStep = detected;
-        writeStep(currentStep, "replace");
-        return;
-      }
-      if (detected !== currentStep) {
-        currentStep = detected;
-        writeStep(currentStep, "push");
-      }
-    };
-
-    detectStep();
-    const observer = new MutationObserver(detectStep);
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-
-    const onPopState = () => {
-      // If the customer is on step 2 or 3, Android Back must move one step
-      // backward instead of allowing the route to fall back to the cart.
-      if (currentStep <= 1) return;
-
-      syncing = true;
-      // Restore the checkout URL immediately after the browser's back event.
-      // This prevents the cart route from replacing the checkout screen.
-      window.history.pushState(
-        { ...(window.history.state || {}), __dfCheckoutStep: currentStep },
-        "",
-        checkoutUrl
-      );
-
-      const previous = currentStep - 1;
-      currentStep = previous;
-      writeStep(previous, "replace");
-      clickPreviousStep();
-      window.setTimeout(() => {
-        const detected = readStep();
-        currentStep = detected || previous;
-        writeStep(currentStep, "replace");
-        syncing = false;
-      }, 80);
     };
 
     window.addEventListener("popstate", onPopState);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("popstate", onPopState);
-    };
+    return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
   return null;
