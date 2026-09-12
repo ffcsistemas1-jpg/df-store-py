@@ -6,7 +6,7 @@ import { useEffect, useRef } from "react";
  * Gives the checkout's internal React steps their own browser-history entries.
  * This is intentionally independent from the checkout button labels: Android's
  * physical Back button must work even when the step UI changes asynchronously.
- * Published explicitly to main so the Vercel Git integration can deploy it.
+ * Republished explicitly for Vercel deployment.
  */
 export default function CheckoutHistory() {
   const stepRef = useRef(1);
