@@ -2,111 +2,99 @@
 
 import { useEffect, useRef } from "react";
 
-/** Keeps the checkout's internal React steps synchronized with browser/Android history. */
+/**
+ * Gives the checkout's internal React steps their own browser-history entries.
+ * This is intentionally independent from the checkout button labels: Android's
+ * physical Back button must work even when the step UI changes asynchronously.
+ */
 export default function CheckoutHistory() {
-  const currentStep = useRef(1);
-  const handlingPop = useRef(false);
-  const pendingForward = useRef(false);
-  const restoringCheckout = useRef(false);
+  const stepRef = useRef(1);
+  const handlingHistory = useRef(false);
+  const syncing = useRef(false);
 
   useEffect(() => {
-    const readVisibleStep = () => {
-      const text = document.body.innerText || "";
-      const match = text.match(/PASO\s+(1|2|3)\s+DE\s+3/i);
+    const getRenderedStep = () => {
+      const text = document.body?.innerText || "";
+      const match = text.match(/\bPASO\s*(?:N.º?\s*)?(1|2|3)\s*DE\s*3\b/i);
       return match ? Number(match[1]) : 0;
     };
 
-    const makeState = (step: number) => ({
+    const stateFor = (step: number) => ({
       ...(window.history.state || {}),
       __dfCheckout: true,
-      checkoutStep: step,
+      __dfCheckoutStep: step,
     });
 
-    const initialStep = readVisibleStep() || 1;
-    currentStep.current = initialStep;
-    window.history.replaceState(makeState(initialStep), "", window.location.href);
-
-    const findBackButton = () => Array.from(document.querySelectorAll("button"))
-      .find((button) => {
+    const findVisibleBackButton = () => {
+      const buttons = Array.from(document.querySelectorAll("button")) as HTMLButtonElement[];
+      return buttons.find((button) => {
+        if (button.disabled) return false;
+        const rect = button.getBoundingClientRect();
         const label = (button.textContent || "").trim();
-        return /volver/i.test(label) && !(button as HTMLButtonElement).disabled;
-      }) as HTMLButtonElement | undefined;
-
-    const recordForwardStepIfRendered = () => {
-      const visibleStep = readVisibleStep();
-      if (!visibleStep || visibleStep <= currentStep.current) return;
-      if (visibleStep > currentStep.current + 1) return;
-
-      currentStep.current = visibleStep;
-      window.history.pushState(makeState(visibleStep), "", window.location.href);
-      pendingForward.current = false;
+        return rect.width > 0 && rect.height > 0 && /volver|atr[aá]s/i.test(label);
+      });
     };
 
-    const onClickCapture = (event: MouseEvent) => {
-      const element = event.target as HTMLElement | null;
-      const button = element?.closest("button");
-      if (!button) return;
-      const label = (button.textContent || "").trim();
+    const initial = getRenderedStep() || 1;
+    stepRef.current = initial;
+    window.history.replaceState(stateFor(initial), "", window.location.href);
 
-      if (/continuar/i.test(label) && currentStep.current < 3 && !handlingPop.current) {
-        pendingForward.current = true;
-        window.setTimeout(recordForwardStepIfRendered, 0);
-        window.setTimeout(recordForwardStepIfRendered, 100);
-        window.setTimeout(recordForwardStepIfRendered, 300);
-        window.setTimeout(recordForwardStepIfRendered, 700);
+    // React changes `step` without changing the URL. Polling plus a mutation
+    // observer catches both synchronous and asynchronous render updates.
+    const syncRenderedStep = () => {
+      if (handlingHistory.current || syncing.current) return;
+      const rendered = getRenderedStep();
+      if (!rendered || rendered === stepRef.current) return;
+
+      if (rendered > stepRef.current && rendered === stepRef.current + 1) {
+        stepRef.current = rendered;
+        window.history.pushState(stateFor(rendered), "", window.location.href);
         return;
       }
 
-      if (/volver/i.test(label) && currentStep.current > 1 && !handlingPop.current) {
+      // A visual Volver click may already have changed React before the
+      // browser-history event is delivered. Keep our tracker synchronized.
+      if (rendered < stepRef.current) {
+        stepRef.current = rendered;
+        window.history.replaceState(stateFor(rendered), "", window.location.href);
+      }
+    };
+
+    const observer = new MutationObserver(syncRenderedStep);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    const poll = window.setInterval(syncRenderedStep, 120);
+
+    const onClickCapture = (event: MouseEvent) => {
+      if (handlingHistory.current) return;
+      const target = event.target as HTMLElement | null;
+      const button = target?.closest("button") as HTMLButtonElement | null;
+      if (!button || button.disabled) return;
+      const label = (button.textContent || "").trim();
+
+      // Convert the checkout's visible back action into browser history.
+      // The actual React Volver handler is called from popstate below.
+      if (/volver|atr[aá]s/i.test(label) && stepRef.current > 1) {
         event.preventDefault();
-        event.stopPropagation();
-        pendingForward.current = false;
+        event.stopImmediatePropagation();
         window.history.back();
       }
     };
 
-    const observer = new MutationObserver(() => {
-      if (handlingPop.current || !pendingForward.current) return;
-      recordForwardStepIfRendered();
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
-
     const onPopState = (event: PopStateEvent) => {
-      const targetStep = Number(event.state?.checkoutStep || 0);
+      const targetStep = Number(event.state?.__dfCheckoutStep || 0);
+      if (!event.state?.__dfCheckout || !targetStep) return;
+      if (targetStep >= stepRef.current) return;
 
-      // Normal synthetic checkout entries: move React one step backward.
-      if (event.state?.__dfCheckout && targetStep && targetStep < currentStep.current) {
-        currentStep.current = targetStep;
-        pendingForward.current = false;
-        handlingPop.current = true;
-        findBackButton()?.click();
-        window.setTimeout(() => {
-          handlingPop.current = false;
-        }, 500);
-        return;
-      }
+      stepRef.current = targetStep;
+      syncing.current = true;
+      handlingHistory.current = true;
+      const back = findVisibleBackButton();
+      if (back) back.click();
 
-      // Fallback for Android/browser history when no synthetic entry was
-      // recorded: the browser has just left checkout and landed on the cart.
-      // Restore the checkout document, then use the real React Volver action.
-      if (!event.state?.__dfCheckout && currentStep.current > 1 && !restoringCheckout.current) {
-        restoringCheckout.current = true;
-        handlingPop.current = true;
-        window.history.forward();
-        window.setTimeout(() => {
-          currentStep.current = Math.max(1, currentStep.current - 1);
-          pendingForward.current = false;
-          findBackButton()?.click();
-          window.history.replaceState(makeState(currentStep.current), "", window.location.href);
-          handlingPop.current = false;
-          restoringCheckout.current = false;
-        }, 180);
-      }
+      window.setTimeout(() => {
+        handlingHistory.current = false;
+        syncing.current = false;
+      }, 350);
     };
 
     document.addEventListener("click", onClickCapture, true);
@@ -114,6 +102,7 @@ export default function CheckoutHistory() {
 
     return () => {
       observer.disconnect();
+      window.clearInterval(poll);
       document.removeEventListener("click", onClickCapture, true);
       window.removeEventListener("popstate", onPopState);
     };
