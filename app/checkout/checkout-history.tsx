@@ -2,51 +2,56 @@
 
 import { useEffect } from "react";
 
-/** Creates real browser-history entries for the three checkout steps. */
+/** Synchronizes React checkout steps with real browser history entries. */
 export default function CheckoutHistory() {
   useEffect(() => {
     const url = window.location.href;
-    let applying = false;
+    let currentStep = 1;
+    let movingHistory = true;
+    let handlingBack = false;
 
-    // The checkout is one URL, so create three history entries explicitly:
-    // cart -> checkout step 1 -> checkout step 2 -> checkout step 3.
-    // Then return the visible screen to step 1 without changing the URL.
     window.history.replaceState({ ...(window.history.state || {}), __dfCheckoutStep: 1 }, "", url);
     window.history.pushState({ __dfCheckoutStep: 2 }, "", url);
     window.history.pushState({ __dfCheckoutStep: 3 }, "", url);
     window.history.go(-2);
+    window.setTimeout(() => { movingHistory = false; }, 250);
 
-    const getStep = () => {
-      const text = document.body.innerText;
-      const match = text.match(/PASO\s+(\d+)\s+DE\s+3/i);
-      return match ? Number(match[1]) : 1;
+    const readVisibleStep = () => {
+      const match = document.body.innerText.match(/PASO\s+(\d+)\s+DE\s+3/i);
+      return match ? Math.max(1, Math.min(3, Number(match[1]))) : currentStep;
     };
 
-    const clickBack = () => {
-      const button = Array.from(document.querySelectorAll("button")).find((b) =>
-        /volver/i.test((b.textContent || "").trim())
-      ) as HTMLButtonElement | undefined;
-      if (button) button.click();
-    };
+    const observer = new MutationObserver(() => {
+      if (movingHistory || handlingBack) return;
+      const visible = readVisibleStep();
+      if (visible === currentStep) return;
+      const delta = visible - currentStep;
+      currentStep = visible;
+      movingHistory = true;
+      window.history.go(delta);
+      window.setTimeout(() => { movingHistory = false; }, 250);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
     const onPopState = (event: PopStateEvent) => {
-      if (applying) return;
-      const target = Number(event.state?.__dfCheckoutStep || 1);
-      const visible = getStep();
-      if (target < visible && visible > 1) {
-        applying = true;
-        // The history entry has already moved back one position. Restore a
-        // checkout entry so Android cannot navigate to the cart prematurely.
-        window.history.pushState({ ...(window.history.state || {}), __dfCheckoutStep: visible }, "", url);
-        clickBack();
-        window.setTimeout(() => {
-          applying = false;
-        }, 150);
+      const target = Number(event.state?.__dfCheckoutStep || 0);
+      const visible = readVisibleStep();
+      if (target > 0 && target < visible) {
+        handlingBack = true;
+        currentStep = target;
+        const backButton = Array.from(document.querySelectorAll("button")).find((b) =>
+          /volver/i.test((b.textContent || "").trim())
+        ) as HTMLButtonElement | undefined;
+        if (backButton) backButton.click();
+        window.setTimeout(() => { handlingBack = false; }, 250);
       }
     };
 
     window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("popstate", onPopState);
+    };
   }, []);
 
   return null;
