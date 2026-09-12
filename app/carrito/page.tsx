@@ -1,15 +1,163 @@
 "use client";
+
 import Link from "next/link";
 import { useCart } from "../ui";
 import { useEffect, useState } from "react";
 import { createClient } from "../../lib/supabase/client";
-const money=(n:number)=>`₲ ${n.toLocaleString("es-PY")}`;
-export default function Cart(){
- const {items,remove,update,subtotal,syncStock}=useCart();
- const [checkingStock,setCheckingStock]=useState(true);
- useEffect(()=>{let cancelled=false; const check=async()=>{if(!items.length){setCheckingStock(false);return;} try{const ids=items.map(i=>i.id).filter(id=>!id.startsWith("demo-")); if(ids.length){const {data,error}=await createClient().from("products").select("id,stock,active").in("id",ids); if(!cancelled&&!error&&Array.isArray(data)){const stocks:Record<string,number>={}; data.forEach(row=>{if(row.active)stocks[row.id]=Number(row.stock)||0}); syncStock(stocks)}}}catch{} if(!cancelled)setCheckingStock(false)}; check(); return()=>{cancelled=true}},[items.length,syncStock]);
- if(!items.length)return <section className="cart-page"><span className="cart-eyebrow">COMPRA</span><h1>Carrito</h1><div className="cart-empty"><h2>Tu carrito está vacío</h2><p>Agregá productos del catálogo para continuar.</p><Link className="btn" href="/catalogo">Ir al catálogo</Link></div></section>;
- return <section className="cart-page">{checkingStock&&<p className="muted">Verificando disponibilidad...</p>}<div className="cart-heading"><div><span className="cart-eyebrow">COMPRA</span><h1>Carrito</h1><p className="muted">Revisá tus productos antes de continuar.</p></div><Link className="cart-back" href="/catalogo">← Seguir comprando</Link></div><div className="cart-items">{items.map(item=><article className="cart-item" key={item.id}><Link className="cart-item-image" href={`/catalogo/${item.id}`}>{item.image_url?<img src={item.image_url} alt={item.name}/>:<b>DF</b>}</Link><div className="cart-item-info"><Link href={`/catalogo/${item.id}`} className="cart-item-name">{item.name}</Link><div className="cart-item-price">{money(item.price)} <small>c/u</small></div><div className="cart-quantity"><span>Cantidad</span><div className="quantity-control"><button type="button" onClick={()=>update(item.id,item.quantity-1)} disabled={item.quantity<=1}>−</button><input type="number" min="1" max={item.stock||1} value={item.quantity} onChange={e=>update(item.id,Number(e.target.value)||1)}/><button type="button" onClick={()=>update(item.id,item.quantity+1)} disabled={item.quantity>=item.stock}>+</button></div></div><div className="cart-stock">{item.stock>0?`${item.stock} disponibles`:"Sin stock"}</div></div><div className="cart-item-actions"><strong>{money(item.price*item.quantity)}</strong><button type="button" onClick={()=>remove(item.id)}>Eliminar</button></div></article>)}</div><aside className="cart-summary"><div className="cart-summary-row"><span>Subtotal</span><strong>{money(subtotal)}</strong></div><p className="muted">El costo de entrega se calculará en el checkout.</p><Link className="btn cart-checkout" href="/checkout">Continuar al checkout</Link></aside><style jsx>{`
-.cart-page{width:min(calc(100% - 32px),1180px);margin:40px auto 80px;min-width:0}.cart-eyebrow{display:block;color:#98234d;font-weight:800;letter-spacing:.12em;font-size:14px}.cart-page h1{margin:8px 0 12px;font-size:clamp(38px,5vw,58px);line-height:1}.cart-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:28px}.cart-heading p{margin:0;font-size:18px}.cart-back{font-weight:700;white-space:nowrap}.cart-items{display:flex;flex-direction:column;gap:16px}.cart-item{display:grid;grid-template-columns:128px minmax(0,1fr) auto;gap:20px;align-items:center;width:100%;min-width:0;padding:18px;box-sizing:border-box;background:#fff;border:1px solid #eadfe0;border-radius:20px;box-shadow:0 5px 18px rgba(50,20,30,.04)}.cart-item-image{display:flex!important;align-items:center;justify-content:center;width:128px!important;height:128px!important;min-width:128px!important;max-width:128px!important;min-height:128px!important;max-height:128px!important;overflow:hidden!important;box-sizing:border-box;border-radius:14px;background:#f7f1ee}.cart-item-image img{display:block!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;position:static!important}.cart-item-image b{color:#98234d;font:700 42px Georgia,serif}.cart-item-info{min-width:0;overflow:hidden}.cart-item-name{display:block;color:#21171a;font-size:22px;font-weight:800;line-height:1.2;overflow-wrap:anywhere;margin-bottom:8px}.cart-item-price{color:#5c5557;font-weight:800;margin-bottom:14px}.cart-item-price small{font-size:13px}.cart-quantity{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-weight:800}.quantity-control{display:inline-flex;align-items:center}.quantity-control button,.quantity-control input{height:38px;box-sizing:border-box;border:1px solid #c8b8bd;background:#fff;text-align:center}.quantity-control button{width:38px;font-size:22px;cursor:pointer}.quantity-control button:first-child{border-radius:8px 0 0 8px}.quantity-control button:last-child{border-radius:0 8px 8px 0}.quantity-control input{width:52px;border-left:0;border-right:0;font:inherit}.quantity-control button:disabled{opacity:.45;cursor:not-allowed}.cart-stock{margin-top:8px;color:#71696c;font-size:14px;font-weight:600}.cart-item-actions{display:flex;flex-direction:column;align-items:flex-end;gap:18px;min-width:120px}.cart-item-actions strong{font-size:22px;white-space:nowrap}.cart-item-actions button{border:1px solid #c8b8bd;border-radius:8px;padding:8px 14px;background:#fff;color:#98234d;font-weight:800;cursor:pointer}.cart-summary{margin-top:20px;padding:24px;background:#fff;border:1px solid #eadfe0;border-radius:18px}.cart-summary-row{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:22px}.cart-summary-row strong{color:#98234d;font-size:28px}.cart-summary p{margin:12px 0 20px}.cart-checkout{display:inline-flex}.cart-empty{background:#fff;border:1px solid #eadfe0;border-radius:18px;padding:28px}.cart-empty h2{margin-top:0}@media(max-width:700px){.cart-page{width:calc(100% - 24px);margin:26px auto 70px}.cart-heading{display:block;margin-bottom:22px}.cart-heading p{font-size:16px}.cart-back{display:inline-block;margin-top:16px}.cart-item{grid-template-columns:92px minmax(0,1fr);gap:14px;padding:12px;border-radius:16px;align-items:start}.cart-item-image{width:92px!important;height:92px!important;min-width:92px!important;max-width:92px!important;min-height:92px!important;max-height:92px!important;border-radius:10px}.cart-item-image b{font-size:30px}.cart-item-name{font-size:17px;line-height:1.2;margin-bottom:6px}.cart-item-price{font-size:15px;margin-bottom:10px}.cart-quantity{display:block}.cart-quantity>span{display:block;font-size:14px;margin-bottom:6px}.quantity-control button{width:32px;height:34px}.quantity-control input{width:42px;height:34px}.cart-stock{font-size:13px;margin-top:7px}.cart-item-actions{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:space-between;width:100%;min-width:0;padding-top:11px;border-top:1px solid #eadfe0;gap:10px}.cart-item-actions strong{font-size:18px}.cart-item-actions button{padding:7px 12px}.cart-summary{padding:18px}.cart-summary-row{font-size:18px}.cart-summary-row strong{font-size:23px}.cart-checkout{width:100%;justify-content:center}}
-`}</style></section>;
+
+const money = (n: number) => `₲ ${Number(n || 0).toLocaleString("es-PY")}`;
+
+export default function Cart() {
+  const { items, remove, update, subtotal, syncStock } = useCart();
+  const [checkingStock, setCheckingStock] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      if (!items.length) {
+        setCheckingStock(false);
+        return;
+      }
+      try {
+        const ids = items.map((item) => item.id).filter((id) => !id.startsWith("demo-"));
+        if (ids.length) {
+          const { data, error } = await createClient()
+            .from("products")
+            .select("id,stock,active")
+            .in("id", ids);
+          if (!cancelled && !error && Array.isArray(data)) {
+            const stocks: Record<string, number> = {};
+            data.forEach((row) => {
+              if (row.active) stocks[row.id] = Number(row.stock) || 0;
+            });
+            syncStock(stocks);
+          }
+        }
+      } catch {}
+      if (!cancelled) setCheckingStock(false);
+    };
+    check();
+    return () => {
+      cancelled = true;
+    };
+  }, [items.length, syncStock]);
+
+  if (!items.length) {
+    return (
+      <section className="cart-page cart-empty-page">
+        <span className="cart-eyebrow">COMPRA</span>
+        <h1>Carrito</h1>
+        <div className="cart-empty">
+          <h2>Tu carrito está vacío</h2>
+          <p>Agregá productos del catálogo para continuar.</p>
+          <Link className="btn" href="/catalogo">Ir al catálogo</Link>
+        </div>
+        <CartStyles />
+      </section>
+    );
+  }
+
+  return (
+    <section className="cart-page">
+      <div className="cart-heading">
+        <div>
+          <span className="cart-eyebrow">COMPRA</span>
+          <h1>Carrito</h1>
+          <p className="cart-subtitle">Revisá tus productos antes de continuar.</p>
+        </div>
+        <Link className="cart-back" href="/catalogo">← Seguir comprando</Link>
+      </div>
+
+      {checkingStock && <p className="cart-stock-check">Verificando disponibilidad…</p>}
+
+      <div className="cart-layout">
+        <div className="cart-items" aria-label="Productos del carrito">
+          {items.map((item) => (
+            <article className="cart-item" key={item.id}>
+              <Link className="cart-product-media" href={`/catalogo/${item.id}`} aria-label={`Ver ${item.name}`}>
+                {item.image_url ? <img src={item.image_url} alt={item.name} /> : <span>DF</span>}
+              </Link>
+
+              <div className="cart-product-main">
+                <Link href={`/catalogo/${item.id}`} className="cart-product-name">{item.name}</Link>
+                <div className="cart-product-unit">{money(item.price)} <small>por unidad</small></div>
+                <div className="cart-product-meta">{item.stock > 0 ? `${item.stock} disponibles` : "Sin stock"}</div>
+              </div>
+
+              <div className="cart-product-controls">
+                <label className="cart-quantity-label" htmlFor={`quantity-${item.id}`}>Cantidad</label>
+                <div className="cart-quantity-control">
+                  <button type="button" onClick={() => update(item.id, item.quantity - 1)} disabled={item.quantity <= 1} aria-label="Disminuir cantidad">−</button>
+                  <input id={`quantity-${item.id}`} type="number" min="1" max={item.stock || 1} value={item.quantity} onChange={(e) => update(item.id, Number(e.target.value) || 1)} aria-label={`Cantidad de ${item.name}`} />
+                  <button type="button" onClick={() => update(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock} aria-label="Aumentar cantidad">+</button>
+                </div>
+              </div>
+
+              <div className="cart-product-total">
+                <strong>{money(item.price * item.quantity)}</strong>
+                <button type="button" onClick={() => remove(item.id)}>Eliminar</button>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <aside className="cart-summary">
+          <div className="cart-summary-title">Resumen del pedido</div>
+          <div className="cart-summary-row"><span>Subtotal</span><strong>{money(subtotal)}</strong></div>
+          <p>El costo de entrega se calculará en el checkout.</p>
+          <Link className="btn cart-checkout" href="/checkout">Continuar al checkout</Link>
+          <Link className="cart-summary-back" href="/catalogo">Seguir comprando</Link>
+        </aside>
+      </div>
+      <CartStyles />
+    </section>
+  );
+}
+
+function CartStyles() {
+  return <style jsx>{`
+    .cart-page{width:min(1180px,calc(100% - 32px));margin:42px auto 100px;color:#21171a}
+    .cart-eyebrow{display:block;color:#98234d;font-weight:800;letter-spacing:.14em;font-size:13px}
+    .cart-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:28px}
+    .cart-page h1{margin:8px 0 10px;font-family:Georgia,serif;font-size:clamp(42px,5vw,64px);line-height:1}
+    .cart-subtitle{margin:0;color:#71696c;font-size:18px}
+    .cart-back{color:#21171a;font-weight:700;white-space:nowrap;text-decoration:none}
+    .cart-stock-check{margin:-10px 0 16px;color:#71696c;font-size:14px}
+    .cart-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;align-items:start;gap:24px}
+    .cart-items{display:flex;flex-direction:column;gap:14px;min-width:0}
+    .cart-item{display:grid;grid-template-columns:116px minmax(0,1fr) auto auto;align-items:center;gap:18px;padding:16px;background:#fff;border:1px solid #eadfe0;border-radius:18px;box-shadow:0 8px 24px rgba(50,20,30,.045);min-width:0}
+    .cart-product-media{display:flex;align-items:center;justify-content:center;width:116px;height:116px;min-width:116px;overflow:hidden;border-radius:12px;background:#f7f2ef;text-decoration:none}
+    .cart-product-media img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;object-position:center}
+    .cart-product-media span{font:700 38px Georgia,serif;color:#98234d}
+    .cart-product-main{min-width:0}
+    .cart-product-name{display:block;color:#21171a;font-size:21px;font-weight:800;line-height:1.2;text-decoration:none;overflow-wrap:anywhere;margin-bottom:8px}
+    .cart-product-unit{font-weight:800;color:#5c5557;font-size:16px}
+    .cart-product-unit small{font-size:12px;font-weight:600;color:#8a8184}
+    .cart-product-meta{margin-top:8px;color:#71696c;font-size:13px}
+    .cart-product-controls{display:flex;flex-direction:column;align-items:center;gap:7px}
+    .cart-quantity-label{font-size:13px;font-weight:800;color:#5c5557}
+    .cart-quantity-control{display:flex;align-items:center}
+    .cart-quantity-control button,.cart-quantity-control input{height:38px;border:1px solid #d8cbd0;background:#fff;text-align:center;box-sizing:border-box}
+    .cart-quantity-control button{width:36px;font-size:21px;cursor:pointer}
+    .cart-quantity-control button:first-child{border-radius:8px 0 0 8px}
+    .cart-quantity-control button:last-child{border-radius:0 8px 8px 0}
+    .cart-quantity-control input{width:48px;border-left:0;border-right:0;font:700 15px inherit;-moz-appearance:textfield}
+    .cart-quantity-control input::-webkit-outer-spin-button,.cart-quantity-control input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    .cart-quantity-control button:disabled{opacity:.4;cursor:not-allowed}
+    .cart-product-total{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;align-self:stretch;gap:14px;min-width:105px}
+    .cart-product-total strong{font-size:20px;white-space:nowrap}
+    .cart-product-total button{border:1px solid #d8cbd0;border-radius:8px;padding:8px 12px;background:#fff;color:#98234d;font-weight:800;cursor:pointer}
+    .cart-summary{position:sticky;top:20px;padding:24px;background:#fff;border:1px solid #eadfe0;border-radius:18px;box-shadow:0 8px 24px rgba(50,20,30,.045)}
+    .cart-summary-title{font-size:20px;font-weight:800;margin-bottom:22px}
+    .cart-summary-row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:18px}
+    .cart-summary-row strong{color:#98234d;font-size:27px;white-space:nowrap}
+    .cart-summary p{margin:16px 0 22px;color:#71696c;line-height:1.45;font-size:14px}
+    .cart-checkout{width:100%;justify-content:center;box-sizing:border-box}
+    .cart-summary-back{display:block;text-align:center;margin-top:18px;color:#98234d;font-weight:800;text-decoration:none;font-size:14px}
+    .cart-empty{padding:32px;background:#fff;border:1px solid #eadfe0;border-radius:18px}
+    .cart-empty h2{margin:0 0 10px;font-size:26px}
+    .cart-empty p{color:#71696c;margin:0 0 22px}
+    @media(max-width:900px){.cart-layout{grid-template-columns:1fr}.cart-summary{position:static}.cart-summary-back{display:none}}
+    @media(max-width:600px){.cart-page{width:calc(100% - 24px);margin:26px auto 82px}.cart-heading{display:block;margin-bottom:22px}.cart-page h1{font-size:46px}.cart-subtitle{font-size:16px}.cart-back{display:inline-block;margin-top:15px}.cart-item{grid-template-columns:86px minmax(0,1fr);gap:12px;padding:12px;border-radius:15px;align-items:start}.cart-product-media{width:86px;height:86px;min-width:86px;border-radius:10px}.cart-product-media span{font-size:28px}.cart-product-name{font-size:17px;margin-bottom:6px}.cart-product-unit{font-size:15px}.cart-product-meta{font-size:12px;margin-top:6px}.cart-product-controls{grid-column:2;align-items:flex-start;gap:6px}.cart-quantity-label{font-size:12px}.cart-quantity-control button{width:32px;height:34px}.cart-quantity-control input{width:42px;height:34px}.cart-product-total{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:space-between;border-top:1px solid #eee4e5;padding-top:11px;min-width:0;gap:10px}.cart-product-total strong{font-size:18px}.cart-product-total button{padding:7px 11px}.cart-summary{padding:18px}.cart-summary-title{font-size:18px;margin-bottom:18px}.cart-summary-row{font-size:17px}.cart-summary-row strong{font-size:23px}}
+  `}</style>;
 }
