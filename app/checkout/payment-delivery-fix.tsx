@@ -13,8 +13,18 @@ export default function PaymentDeliveryFix() {
 
     const getDeliveryType = () => {
       const selected = document.querySelector<HTMLInputElement>('input[name="delivery"]:checked');
-      const text = selected?.closest("label")?.textContent?.toLowerCase() || "";
-      return text.includes("interior") ? "interior" : "delivery";
+      const selectedText = selected?.closest("label")?.textContent?.toLowerCase() || "";
+      if (selectedText.includes("interior")) return "interior";
+
+      // The delivery radio buttons are not rendered on steps 2 and 3.
+      // The interior-only receipt panel is a reliable fallback there.
+      if (document.querySelector(".payment-receipt-box")) return "interior";
+      const helperText = Array.from(document.querySelectorAll("small, p, span"))
+        .map((node) => node.textContent?.toLowerCase() || "")
+        .join(" ");
+      return helperText.includes("envíos al interior") || helperText.includes("envíos al interior")
+        ? "interior"
+        : "delivery";
     };
 
     const apply = () => {
@@ -29,7 +39,6 @@ export default function PaymentDeliveryFix() {
       const placeholderValue = "";
       const placeholderText = "Elegí un método de pago";
 
-      // Always provide a neutral first option for interior orders.
       let placeholder = Array.from(payment.options).find((option) => option.value === placeholderValue);
       if (!placeholder) {
         placeholder = document.createElement("option");
@@ -41,7 +50,6 @@ export default function PaymentDeliveryFix() {
       payment.disabled = !isInterior;
 
       if (isInterior) {
-        // Interior orders require an explicit customer choice.
         if (payment.value !== placeholderValue) {
           syncing = true;
           payment.value = placeholderValue;
