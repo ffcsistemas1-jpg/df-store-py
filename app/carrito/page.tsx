@@ -47,7 +47,7 @@ export default function CartPage() {
     <main className="df-cart-page">
       <style>{`
         .df-cart-page,.df-cart-page *{box-sizing:border-box}
-        .df-cart-page{width:100%!important;max-width:1180px!important;margin:0 auto!important;padding:28px 24px 130px!important;color:#21171a!important}
+        .df-cart-page{width:100%!important;max-width:1180px!important;margin:0 auto!important;padding:28px 24px 150px!important;color:#21171a!important}
         .df-cart-page .df-cart-header{display:block!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;position:relative!important;clear:both!important;overflow:visible!important}
         .df-cart-page .df-kicker{display:block!important;margin:0 0 8px!important;color:#98234d!important;font:900 13px/1 Arial,sans-serif!important;letter-spacing:.18em!important}
         .df-cart-page h1{display:block!important;width:100%!important;height:auto!important;margin:0 0 12px!important;padding:0!important;font:700 clamp(46px,7vw,72px)/1 Georgia,serif!important;color:#21171a!important;white-space:normal!important;overflow:visible!important}
@@ -81,8 +81,10 @@ export default function CartPage() {
         .df-cart-page .df-summary p{display:block!important;margin:18px 0 22px!important;padding:0!important;color:#71696c!important;font:14px/1.5 Arial,sans-serif!important}
         .df-cart-page .df-primary{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-height:52px!important;margin:0!important;padding:15px 18px!important;background:#98234d!important;color:#fff!important;border-radius:11px!important;font:900 16px/1 Arial,sans-serif!important;text-decoration:none!important;text-align:center!important}
         .df-cart-page .df-summary-link{display:block!important;width:100%!important;margin:18px 0 0!important;padding:0!important;color:#98234d!important;font:800 14px/1.3 Arial,sans-serif!important;text-align:center!important;text-decoration:none!important}
+        .df-cart-page .df-floating-buy{display:flex!important;position:fixed!important;left:16px!important;right:16px!important;bottom:calc(16px + env(safe-area-inset-bottom))!important;z-index:1000!important;align-items:center!important;justify-content:center!important;min-height:56px!important;padding:16px 22px!important;background:#98234d!important;color:#fff!important;border:0!important;border-radius:14px!important;box-shadow:0 8px 28px rgba(45,18,30,.28)!important;font:900 17px/1 Arial,sans-serif!important;text-decoration:none!important;text-align:center!important}
+        @media(min-width:901px){.df-cart-page .df-floating-buy{left:auto!important;right:28px!important;bottom:28px!important;width:300px!important}}
         @media(max-width:900px){.df-cart-page .df-layout{grid-template-columns:1fr!important}.df-cart-page .df-summary{position:static!important}}
-        @media(max-width:600px){.df-cart-page{width:100%!important;padding:22px 12px 120px!important}.df-cart-page h1{font-size:50px!important}.df-cart-page .df-subtitle{font-size:16px!important}.df-cart-page .df-continue-row{margin-top:16px!important;margin-bottom:20px!important}.df-cart-page .df-item{grid-template-columns:92px minmax(0,1fr)!important;gap:12px!important;padding:12px!important}.df-cart-page .df-photo{width:92px!important;height:92px!important;min-width:92px!important}.df-cart-page .df-name{font-size:17px!important}.df-cart-page .df-unit-price{font-size:16px!important}.df-cart-page .df-actions strong{font-size:18px!important}.df-cart-page .df-summary{padding:18px!important}}
+        @media(max-width:600px){.df-cart-page{width:100%!important;padding:22px 12px 150px!important}.df-cart-page h1{font-size:50px!important}.df-cart-page .df-subtitle{font-size:16px!important}.df-cart-page .df-continue-row{margin-top:16px!important;margin-bottom:20px!important}.df-cart-page .df-item{grid-template-columns:92px minmax(0,1fr)!important;gap:12px!important;padding:12px!important}.df-cart-page .df-photo{width:92px!important;height:92px!important;min-width:92px!important}.df-cart-page .df-name{font-size:17px!important}.df-cart-page .df-unit-price{font-size:16px!important}.df-cart-page .df-actions strong{font-size:18px!important}.df-cart-page .df-summary{padding:18px!important}}
       `}</style>
       {!items.length ? (
         <section className="df-cart-header">
@@ -130,6 +132,7 @@ export default function CartPage() {
               <Link className="df-summary-link" href="/catalogo">Seguir comprando</Link>
             </aside>
           </div>
+          <Link className="df-floating-buy" href="/checkout">Comprar ahora · {money(subtotal)}</Link>
         </>
       )}
     </main>
