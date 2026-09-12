@@ -2,15 +2,18 @@
 
 import { useEffect, useRef } from "react";
 
-/** Synchronizes React's three checkout steps with the Android/browser history. */
+/** Synchronizes the checkout React steps with Android/browser history. */
 export default function CheckoutHistory() {
   const currentStep = useRef(1);
   const handlingPop = useRef(false);
   const pendingForward = useRef(false);
 
   useEffect(() => {
+    // The checkout page displays "PASO 1 DE 3", "PASO 2 DE 3", etc.
+    // Do not require a specific prefix such as "CHECKOUT", because that
+    // prevented the history bridge from detecting the actual rendered step.
     const readVisibleStep = () => {
-      const match = document.body.innerText.match(/CHECKOUT\s*[·•-]?\s*PASO\s+(1|2|3)\s+DE\s+3/i);
+      const match = document.body.innerText.match(/PASO\s+(1|2|3)\s+DE\s+3/i);
       return match ? Number(match[1]) : 0;
     };
 
@@ -20,7 +23,6 @@ export default function CheckoutHistory() {
       checkoutStep: step,
     });
 
-    // Keep the current checkout URL, but mark its current React step.
     const initialStep = readVisibleStep() || 1;
     currentStep.current = initialStep;
     window.history.replaceState(makeState(initialStep), "", window.location.href);
@@ -44,32 +46,28 @@ export default function CheckoutHistory() {
       if (!button) return;
       const label = (button.textContent || "").trim();
 
-      // Wait until React has actually changed the step. This prevents a
-      // failed validation click from creating a false history entry.
       if (/continuar/i.test(label) && currentStep.current < 3) {
         pendingForward.current = true;
-        window.setTimeout(() => {
-          if (pendingForward.current) recordForwardStepIfRendered();
-        }, 0);
-        window.setTimeout(() => {
-          if (pendingForward.current) recordForwardStepIfRendered();
-        }, 80);
+        window.setTimeout(recordForwardStepIfRendered, 0);
+        window.setTimeout(recordForwardStepIfRendered, 100);
+        window.setTimeout(recordForwardStepIfRendered, 300);
         return;
       }
 
-      // The visible Volver button should also move through browser history,
-      // so both navigation methods remain synchronized.
+      // Keep the visible Volver button synchronized with browser history.
       if (/volver/i.test(label) && currentStep.current > 1 && !handlingPop.current) {
         event.preventDefault();
         event.stopPropagation();
+        pendingForward.current = false;
         window.history.back();
       }
     };
 
     const observer = new MutationObserver(() => {
-      if (handlingPop.current) return;
-      if (pendingForward.current) recordForwardStepIfRendered();
+      if (handlingPop.current || !pendingForward.current) return;
+      recordForwardStepIfRendered();
     });
+
     observer.observe(document.body, {
       childList: true,
       subtree: true,
