@@ -1,5 +1,6 @@
 import "./checkout.css";
+import type { ReactNode } from "react";
 
-export default function CheckoutLayout({ children }: { children: React.ReactNode }) {
+export default function CheckoutLayout({ children }: { children: ReactNode }) {
   return children;
 }
