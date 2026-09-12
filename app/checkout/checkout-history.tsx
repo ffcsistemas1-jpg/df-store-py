@@ -2,65 +2,62 @@
 
 import { useEffect } from "react";
 
-/**
- * Makes Android/browser back navigate checkout steps instead of leaving
- * checkout immediately. The checkout page uses React state for the steps,
- * so the history layer deliberately delegates the visual change to its
- * existing Volver buttons.
- */
+/** Keeps Android/browser back inside the three checkout steps. */
 export default function CheckoutHistory() {
   useEffect(() => {
-    const url = window.location.href;
     let currentStep = 1;
-    let booting = true;
-    let processing = false;
+    let handlingPop = false;
 
-    const stateFor = (step: number) => ({
+    const makeState = (step: number) => ({
       ...(window.history.state || {}),
       __dfCheckout: true,
       checkoutStep: step,
     });
 
-    // Build exactly three entries at the current checkout URL and place the
-    // browser pointer on step 1. The previous entry remains the cart page.
-    window.history.replaceState(stateFor(1), "", url);
-    window.history.pushState(stateFor(2), "", url);
-    window.history.pushState(stateFor(3), "", url);
-    window.history.go(-2);
+    // Do not pre-create fake future entries. They desynchronize the browser
+    // pointer from React. Instead, record each step only after it is rendered.
+    window.history.replaceState(makeState(1), "", window.location.href);
 
-    const getVisibleStep = () => {
-      const text = document.body.innerText;
-      const match = text.match(/PASO\s+(\d+)\s+DE\s+3/i);
+    const readStep = () => {
+      const match = document.body.innerText.match(/PASO\s+(\d+)\s+DE\s+3/i);
       return match ? Math.max(1, Math.min(3, Number(match[1]))) : currentStep;
     };
 
-    const clickBack = (times: number) => {
-      const button = () => Array.from(document.querySelectorAll("button"))
-        .find((element) => /^\s*volver\s*$/i.test(element.textContent || "")) as HTMLButtonElement | undefined;
-      for (let i = 0; i < times; i += 1) {
-        const back = button();
-        if (!back) break;
-        back.click();
-      }
-    };
+    const findBackButton = () => Array.from(document.querySelectorAll("button"))
+      .find((button) => /^\s*volver\s*$/i.test(button.textContent || "")) as HTMLButtonElement | undefined;
 
-    const finishBoot = () => { booting = false; };
-    window.setTimeout(finishBoot, 500);
+    const observer = new MutationObserver(() => {
+      if (handlingPop) return;
+      const visibleStep = readStep();
+      if (visibleStep === currentStep) return;
+
+      // Forward React navigation gets a real browser entry. Backward React
+      // navigation is already represented by popstate and must not push one.
+      if (visibleStep > currentStep) {
+        window.history.pushState(makeState(visibleStep), "", window.location.href);
+      }
+      currentStep = visibleStep;
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
 
     const onPopState = (event: PopStateEvent) => {
-      if (booting || processing) return;
       const target = Number(event.state?.checkoutStep || 0);
-      const visible = getVisibleStep();
+      const visible = readStep();
       if (!target || target >= visible) return;
 
-      processing = true;
+      handlingPop = true;
       currentStep = target;
-      clickBack(visible - target);
-      window.setTimeout(() => { processing = false; }, 150);
+      const back = findBackButton();
+      if (back) back.click();
+      window.setTimeout(() => { handlingPop = false; }, 200);
     };
 
     window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("popstate", onPopState);
+    };
   }, []);
 
   return null;
