@@ -126,7 +126,7 @@ export default function CartPage() {
               <h2>Resumen del pedido</h2>
               <div className="df-summary-row"><span>Subtotal</span><strong>{money(subtotal)}</strong></div>
               <p>El costo de entrega se calculará en el checkout.</p>
-              <Link className="df-primary" href="/checkout">Continuar al checkout</Link>
+              <Link className="df-primary" href="/checkout">Comprar ahora</Link>
               <Link className="df-summary-link" href="/catalogo">Seguir comprando</Link>
             </aside>
           </div>
