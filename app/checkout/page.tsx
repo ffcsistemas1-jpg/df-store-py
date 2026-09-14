@@ -17,7 +17,7 @@ type Bank = { id: string; bank: string; account_type: string | null; account_num
 type Tigo = { id: string; phone: string; holder_name: string | null; document: string | null };
 type Zone = { department: string; city: string | null; neighborhood: string | null; fee: number };
 type OrderResult = { id: string; subtotal: number; delivery_fee: number; total: number; delivery_type: string };
-type FormState = { full_name: string; whatsapp: string; email: string; department: string; city: string; neighborhood: string; address: string; delivery_type: string; payment_method: string; shipping_company_id: string; shipping_company_other: string; preferred_time: string; invoice_requested: boolean; maps_url: string; note: string };
+type FormState = { full_name: string; whatsapp: string; email: string; department: string; city: string; neighborhood: string; address: string; delivery_type: string; payment_method: string; shipping_company_id: string; shipping_company_other: string; preferred_time: string; invoice_requested: boolean; ruc: string; business_name: string; maps_url: string; note: string };
 
 const DELIVERY_CITIES = ["Asunción", "Areguá", "Capiatá", "Fernando de la Mora", "Guarambaré", "Itá", "Itauguá", "J. Augusto Saldívar", "Lambaré", "Limpio", "Luque", "Mariano Roque Alonso", "Nueva Italia", "Ñemby", "San Antonio", "San Lorenzo", "Villa Elisa", "Villeta", "Ypacaraí", "Villa Hayes"];
 const DELIVERY_CITY_DEPARTMENT: Record<string, string> = { "Asunción": "Asunción", "Areguá": "Central", "Capiatá": "Central", "Fernando de la Mora": "Central", "Guarambaré": "Central", "Itá": "Central", "Itauguá": "Central", "J. Augusto Saldívar": "Central", "Lambaré": "Central", "Limpio": "Central", "Luque": "Central", "Mariano Roque Alonso": "Central", "Nueva Italia": "Central", "Ñemby": "Central", "San Antonio": "Central", "San Lorenzo": "Central", "Villa Elisa": "Central", "Villeta": "Central", "Ypacaraí": "Central", "Villa Hayes": "Presidente Hayes" };
@@ -76,7 +76,7 @@ export default function Checkout() {
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
-  const [form, setForm] = useState<FormState>({ full_name: "", whatsapp: "", email: "", department: "", city: "", neighborhood: "", address: "", delivery_type: "delivery", payment_method: "Pago al recibir", shipping_company_id: "", shipping_company_other: "", preferred_time: "Mañana", invoice_requested: false, maps_url: "", note: "" });
+  const [form, setForm] = useState<FormState>({ full_name: "", whatsapp: "", email: "", department: "", city: "", neighborhood: "", address: "", delivery_type: "delivery", payment_method: "Pago al recibir", shipping_company_id: "", shipping_company_other: "", preferred_time: "Mañana", invoice_requested: false, ruc: "", business_name: "", maps_url: "", note: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [order, setOrder] = useState<OrderResult | null>(null);
@@ -117,7 +117,7 @@ export default function Checkout() {
         if (error) throw error;
         const row = Array.isArray(data) ? data[0] : data;
         if (row) {
-          setForm(x => ({ ...x, full_name: row.full_name || x.full_name, whatsapp: row.whatsapp || x.whatsapp, email: row.email || x.email, department: row.department || x.department, city: row.city || x.city, neighborhood: row.neighborhood || x.neighborhood, address: row.address || x.address, delivery_type: row.delivery_type || x.delivery_type, payment_method: row.payment_method || x.payment_method, shipping_company_id: row.shipping_company_id || x.shipping_company_id, shipping_company_other: row.shipping_company_other || x.shipping_company_other, preferred_time: row.preferred_time || x.preferred_time, invoice_requested: Boolean(row.invoice_requested), maps_url: row.maps_url || x.maps_url, note: row.note || x.note }));
+          setForm(x => ({ ...x, full_name: row.full_name || x.full_name, whatsapp: row.whatsapp || x.whatsapp, email: row.email || x.email, department: row.department || x.department, city: row.city || x.city, neighborhood: row.neighborhood || x.neighborhood, address: row.address || x.address, delivery_type: row.delivery_type || x.delivery_type, payment_method: row.payment_method || x.payment_method, shipping_company_id: row.shipping_company_id || x.shipping_company_id, shipping_company_other: row.shipping_company_other || x.shipping_company_other, preferred_time: row.preferred_time || x.preferred_time, invoice_requested: Boolean(row.invoice_requested), ruc: row.ruc || x.ruc, business_name: row.business_name || x.business_name, maps_url: row.maps_url || x.maps_url, note: row.note || x.note }));
           if (!row.completed_at) setRestoredDraft(true);
         }
       } catch {}
@@ -131,7 +131,7 @@ export default function Checkout() {
     const timer = window.setTimeout(() => {
       const session = sessionRef.current;
       if (!session) return;
-      createClient().rpc("save_checkout_draft", { p_session: session, p_draft: { full_name: form.full_name || null, whatsapp: form.whatsapp || null, email: form.email || null, department: form.department || null, city: form.city || null, neighborhood: null, address: form.address || null, delivery_type: form.delivery_type || null, payment_method: form.payment_method || null, shipping_company_id: form.shipping_company_id || null, shipping_company_other: form.shipping_company_other || null, preferred_time: form.preferred_time || null, invoice_requested: form.invoice_requested, maps_url: form.maps_url || null, note: null } }).then(({ error }: any) => { if (error) console.error("No se pudo guardar el borrador", error); });
+      createClient().rpc("save_checkout_draft", { p_session: session, p_draft: { full_name: form.full_name || null, whatsapp: form.whatsapp || null, email: form.email || null, department: form.department || null, city: form.city || null, neighborhood: null, address: form.address || null, delivery_type: form.delivery_type || null, payment_method: form.payment_method || null, shipping_company_id: form.shipping_company_id || null, shipping_company_other: form.shipping_company_other || null, preferred_time: form.preferred_time || null, invoice_requested: form.invoice_requested, ruc: form.ruc || null, business_name: form.business_name || null, maps_url: form.maps_url || null, note: null } }).then(({ error }: any) => { if (error) console.error("No se pudo guardar el borrador", error); });
     }, 700);
     return () => window.clearTimeout(timer);
   }, [form]);
@@ -244,7 +244,7 @@ export default function Checkout() {
         p_customer: {
           full_name: form.full_name.trim(), whatsapp: normalizePyWhatsapp(form.whatsapp), email: form.email.trim() || null,
           department: form.department || null, city: form.city || null, neighborhood: null, address: form.address.trim() || null,
-          preferred_time: form.preferred_time || null, invoice_requested: form.invoice_requested, maps_url: form.maps_url.trim() || null,
+          preferred_time: form.preferred_time || null, invoice_requested: form.invoice_requested, ruc: form.ruc || null, business_name: form.business_name || null, maps_url: form.maps_url.trim() || null,
           note: form.shipping_company_other.trim() ? `Transportadora solicitada por el cliente: ${form.shipping_company_other.trim()}` : null
         },
         p_items: items.map(i => ({ id: i.id, quantity: i.quantity })),
