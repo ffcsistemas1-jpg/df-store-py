@@ -1,0 +1,44 @@
+name: Fix checkout invoice fields
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.event.head_commit.message != 'Apply checkout invoice fields via workflow'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply fix
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/checkout/page.tsx')
+          s = p.read_text()
+          if s.strip() == '/mnt/data/df-store-py-main-extracted/df-store-py-main/app/checkout/page.tsx':
+              import subprocess
+              s = subprocess.check_output(['git','show','HEAD^:app/checkout/page.tsx'], text=True)
+          s = s.replace('invoice_requested: boolean; maps_url', 'invoice_requested: boolean; ruc: string; business_name: string; maps_url')
+          s = s.replace('preferred_time: "Mañana", invoice_requested: false, maps_url', 'preferred_time: "Mañana", invoice_requested: false, ruc: "", business_name: "", maps_url')
+          s = s.replace('invoice_requested: Boolean(row.invoice_requested), maps_url', 'invoice_requested: Boolean(row.invoice_requested), ruc: row.ruc || x.ruc, business_name: row.business_name || x.business_name, maps_url')
+          s = s.replace('invoice_requested: form.invoice_requested, maps_url', 'invoice_requested: form.invoice_requested, ruc: form.ruc || null, business_name: form.business_name || null, maps_url')
+          marker = '<label className="invoice-check standalone-invoice"><input type="checkbox" checked={form.invoice_requested} onChange={e => set("invoice_requested", e.target.checked)} /> <span>Solicitar factura <small>(opcional)</small></span></label>'
+          block = marker + '{form.invoice_requested && <div className="invoice-fields"><label>RUC*<input required value={form.ruc} onChange={e => set("ruc", e.target.value)} placeholder="Ej. 80012345-6" /></label><label>Razón social*<input required value={form.business_name} onChange={e => set("business_name", e.target.value)} placeholder="Nombre o empresa para la factura" /></label></div>}'
+          if marker in s and 'className="invoice-fields"' not in s:
+              s = s.replace(marker, block, 1)
+          p.write_text(s)
+          PY
+      - name: Commit fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/checkout/page.tsx
+          git commit -m 'Apply checkout invoice fields via workflow' || exit 0
+          git push
+      - name: Remove workflow
+        if: always()
+        run: |
+          git rm .github/workflows/fix-checkout-invoice.yml || true
+          git commit -m 'Remove temporary checkout fix workflow' || true
+          git push || true
