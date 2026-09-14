@@ -1,0 +1,50 @@
+name: Apply Meta Ads Step 1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-meta-ads-step1.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Apply Meta Ads API and dashboard patch
+        env:
+          TARGET_API: supabase/functions/meta-api/index.ts
+          TARGET_DASHBOARD: app/admin/meta-ads/meta-ads-dashboard.tsx
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          api_path = Path('supabase/functions/meta-api/index.ts')
+          api = api_path.read_text()
+
+          old = 'const marketingToken=await getSecret(admin,"meta_marketing_access_token");const fallback=marketingToken||await getSecret(admin,"meta_capi_access_token");const period=String(body?.period||"30d");const datePreset=period==="7d"?"last_7d":period==="all"?"maximum":"last_30d";if(!accountId||!fallback)return json({configured:false,connected:false,reason:"missing_ad_account_or_marketing_token"});const url=new URL(`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/insights`);url.searchParams.set("fields","spend,impressions,clicks,actions,action_values,purchase_roas");url.searchParams.set("date_preset",datePreset);url.searchParams.set("level","account");url.searchParams.set("access_token",fallback);const res=await fetch(url,{cache:"no-store"});const jsonData=await res.json().catch(()=>({}));if(!res.ok)return json({configured:true,connected:false,error:jsonData?.error?.message||"Meta API error"},502);const row=jsonData?.data?.[0]||{};const actionValue=(list:unknown,matcher:RegExp)=>Array.isArray(list)?list.filter((x:any)=>matcher.test(String(x?.action_type||""))).reduce((n:number,x:any)=>n+Number(x?.value||0),0):0;const purchases=actionValue(row.actions,/purchase/i);const purchaseValue=actionValue(row.action_values,/purchase/i);const spend=Number(row.spend||0);return json({configured:true,connected:true,period,spend,impressions:Number(row.impressions||0),clicks:Number(row.clicks||0),purchases,purchaseValue,costPerPurchase:purchases>0?spend/purchases:0,roas:spend>0?purchaseValue/spend:0})}'
+          new = 'const marketingToken=await getSecret(admin,"meta_marketing_access_token");const period=String(body?.period||"30d");const datePreset=period==="1d"?"today":period==="7d"?"last_7d":period==="30d"?"last_30d":"maximum";if(!accountId||!marketingToken)return json({configured:false,connected:false,reason:"missing_ad_account_or_marketing_token"});const url=new URL(`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/insights`);url.searchParams.set("fields","spend,impressions,reach,frequency,clicks,ctr,cpm,cpc,actions,action_values,purchase_roas");url.searchParams.set("date_preset",datePreset);url.searchParams.set("level","account");url.searchParams.set("access_token",marketingToken);const res=await fetch(url,{cache:"no-store"});const jsonData=await res.json().catch(()=>({}));if(!res.ok)return json({configured:true,connected:false,error:jsonData?.error?.message||"Meta API error"},502);const row=jsonData?.data?.[0]||{};const actionValue=(list:unknown,matcher:RegExp)=>Array.isArray(list)?list.filter((x:any)=>matcher.test(String(x?.action_type||""))).reduce((n:number,x:any)=>n+Number(x?.value||0),0):0;const purchases=actionValue(row.actions,/purchase/i);const purchaseValue=actionValue(row.action_values,/purchase/i);const spend=Number(row.spend||0);return json({configured:true,connected:true,period,spend,impressions:Number(row.impressions||0),reach:Number(row.reach||0),frequency:Number(row.frequency||0),clicks:Number(row.clicks||0),ctr:Number(row.ctr||0),cpm:Number(row.cpm||0),cpc:Number(row.cpc||0),purchases,purchaseValue,costPerPurchase:purchases>0?spend/purchases:0,roas:spend>0?purchaseValue/spend:0,lastSyncedAt:new Date().toISOString()})}'
+          if old not in api:
+              raise SystemExit('API target text not found; no API changes applied')
+          api_path.write_text(api.replace(old, new))
+
+          dash_path = Path('app/admin/meta-ads/meta-ads-dashboard.tsx')
+          dash = dash_path.read_text()
+          dash = dash.replace('spend?:number;impressions?:number;clicks?:number;purchases?:number;', 'spend?:number;impressions?:number;reach?:number;frequency?:number;clicks?:number;ctr?:number;cpm?:number;cpc?:number;purchases?:number;')
+          dash = dash.replace('<div><span>Impresiones</span><strong>{integer(insights?.impressions||0)}</strong></div><div><span>Clics</span><strong>{integer(insights?.clicks||0)}</strong></div><div><span>Costo por compra</span><strong>{money(insights?.costPerPurchase||0)}</strong></div><div><span>Conversión</span><strong>{Number(insights?.clicks||0)>0?((Number(insights?.purchases||0)/Number(insights?.clicks||0))*100).toFixed(2):"0.00"}%</strong></div>', '<div><span>Impresiones</span><strong>{integer(insights?.impressions||0)}</strong></div><div><span>Alcance</span><strong>{integer(insights?.reach||0)}</strong></div><div><span>Clics</span><strong>{integer(insights?.clicks||0)}</strong></div><div><span>CTR</span><strong>{Number(insights?.ctr||0).toFixed(2)}%</strong></div><div><span>CPM</span><strong>{money(insights?.cpm||0)}</strong></div><div><span>CPC</span><strong>{money(insights?.cpc||0)}</strong></div><div><span>Frecuencia</span><strong>{Number(insights?.frequency||0).toFixed(2)}×</strong></div><div><span>Costo por compra</span><strong>{money(insights?.costPerPurchase||0)}</strong></div><div><span>Conversión</span><strong>{Number(insights?.clicks||0)>0?((Number(insights?.purchases||0)/Number(insights?.clicks||0))*100).toFixed(2):"0.00"}%</strong></div>')
+          dash_path.write_text(dash)
+          PY
+
+      - name: Commit and remove temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/functions/meta-api/index.ts app/admin/meta-ads/meta-ads-dashboard.tsx
+          git rm .github/workflows/apply-meta-ads-step1.yml
+          git commit -m 'Connect Meta Ads dashboard to real insights metrics'
+          git push
