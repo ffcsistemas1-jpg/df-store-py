@@ -7,6 +7,11 @@ alter table public.order_items enable row level security;
 alter table public.shipping_companies enable row level security;
 alter table public.delivery_zones enable row level security;
 
+-- Datos de facturación del cliente/pedido.
+alter table public.customers add column if not exists ruc text;
+alter table public.customers add column if not exists business_name text;
+alter table public.orders add column if not exists invoice_requested boolean not null default false;
+
 -- El checkout público usa exclusivamente la función segura de abajo.
 drop policy if exists "public read own orders" on public.orders;
 
@@ -30,6 +35,7 @@ declare
   v_product products%rowtype;
   v_item jsonb;
   v_zone delivery_zones%rowtype;
+  v_invoice_requested boolean := coalesce((p_customer->>'invoice_requested')::boolean, false);
 begin
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
     raise exception 'El carrito está vacío';
@@ -45,16 +51,20 @@ begin
     raise exception 'Departamento y ciudad son obligatorios';
   end if;
 
-  if coalesce(trim(p_customer->>'address'),'') = '' and p_delivery_type <> 'retiro' then
-    raise exception 'La dirección es obligatoria para el envío';
-  end if;
-
+  -- La dirección es opcional para delivery e interior; puede quedar vacía.
   if p_delivery_type not in ('delivery','interior','retiro') then
     raise exception 'Tipo de entrega inválido';
   end if;
 
   if p_payment_method not in ('Pago al recibir','Transferencia','Giro Tigo') then
     raise exception 'Método de pago inválido';
+  end if;
+
+  if v_invoice_requested and (
+    coalesce(trim(p_customer->>'ruc'),'') = ''
+    or coalesce(trim(p_customer->>'business_name'),'') = ''
+  ) then
+    raise exception 'RUC y razón social son obligatorios para solicitar factura';
   end if;
 
   if p_delivery_type = 'interior' then
@@ -88,7 +98,7 @@ begin
     if found then v_delivery_fee := coalesce(v_zone.fee,0); end if;
   end if;
 
-  insert into customers(full_name, whatsapp, email, department, city, neighborhood, address)
+  insert into customers(full_name, whatsapp, email, department, city, neighborhood, address, ruc, business_name)
   values (
     trim(p_customer->>'full_name'),
     trim(p_customer->>'whatsapp'),
@@ -96,11 +106,13 @@ begin
     trim(p_customer->>'department'),
     trim(p_customer->>'city'),
     nullif(trim(p_customer->>'neighborhood'),''),
-    trim(p_customer->>'address')
+    nullif(trim(p_customer->>'address'),''),
+    case when v_invoice_requested then nullif(trim(p_customer->>'ruc'),'') else null end,
+    case when v_invoice_requested then nullif(trim(p_customer->>'business_name'),'') else null end
   ) returning id into v_customer_id;
 
-  insert into orders(customer_id,status,delivery_type,payment_method,shipping_company_id,subtotal,delivery_fee,total)
-  values (v_customer_id,'pendiente',p_delivery_type,p_payment_method,p_shipping_company_id,0,v_delivery_fee,0)
+  insert into orders(customer_id,status,delivery_type,payment_method,shipping_company_id,invoice_requested,subtotal,delivery_fee,total)
+  values (v_customer_id,'pendiente',p_delivery_type,p_payment_method,p_shipping_company_id,v_invoice_requested,0,v_delivery_fee,0)
   returning id into v_order_id;
 
   for v_item in select * from jsonb_array_elements(p_items) loop
