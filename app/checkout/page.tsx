@@ -26,6 +26,56 @@ const normGeo = (v: string) => String(v || "").normalize("NFD").replace(/[\u0300
 export default function Checkout() {
   const { items, subtotal, clear } = useCart();
   const [step, setStep] = useState(1);
+
+  // Mantiene los pasos del checkout dentro del historial del navegador.
+  // Así, el botón físico "Atrás" retrocede entre los pasos sin volver
+  // accidentalmente al carrito mientras el checkout está activo.
+  const goToStep = (nextStep: number) => {
+    const safeStep = Math.min(3, Math.max(1, nextStep));
+    setStep(safeStep);
+    window.history.pushState(
+      { checkoutStep: safeStep },
+      "",
+      window.location.href
+    );
+  };
+
+  useEffect(() => {
+    const initialUrl = window.location.href;
+
+    // Dejamos una entrada de respaldo para que el primer "Atrás"
+    // desde el paso 1 permanezca dentro del checkout.
+    window.history.replaceState(
+      { checkoutStep: 1, checkoutRoot: true },
+      "",
+      initialUrl
+    );
+    window.history.pushState(
+      { checkoutStep: 1, checkoutRoot: true },
+      "",
+      initialUrl
+    );
+
+    const handlePopState = () => {
+      setStep((currentStep) => {
+        if (currentStep > 1) {
+          return currentStep - 1;
+        }
+
+        // En el paso 1 no permitimos salir accidentalmente al carrito
+        // mediante el botón físico Atrás.
+        window.history.pushState(
+          { checkoutStep: 1, checkoutRoot: true },
+          "",
+          window.location.href
+        );
+        return 1;
+      });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   const [form, setForm] = useState<FormState>({ full_name: "", whatsapp: "", email: "", department: "", city: "", neighborhood: "", address: "", delivery_type: "delivery", payment_method: "Pago al recibir", shipping_company_id: "", shipping_company_other: "", preferred_time: "Mañana", invoice_requested: false, maps_url: "", note: "" });
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -226,8 +276,8 @@ export default function Checkout() {
     {step === 1 && <div className="checkout-panel panel"><h2>📍 ¿Dónde entregamos?</h2><div className="delivery-choice"><label className={form.delivery_type === "delivery" ? "choice active" : "choice"}><input type="radio" name="delivery" checked={form.delivery_type === "delivery"} onChange={() => setForm(x => ({ ...x, delivery_type: "delivery", payment_method: "Pago al recibir" }))} /><span><b>Asunción y Central</b><small>Delivery y pago al recibir</small></span></label><label className={form.delivery_type === "interior" ? "choice active" : "choice"}><input type="radio" name="delivery" checked={form.delivery_type === "interior"} onChange={() => setForm(x => ({ ...x, delivery_type: "interior", payment_method: "Transferencia" }))} /><span><b>Interior del país</b><small>Envío por transportadora · pago anticipado</small></span></label></div><div className="delivery-info"><b>🚚 {form.delivery_type === "delivery" ? "Delivery local" : "Envío al interior"}</b><span>{form.delivery_type === "delivery" ? "Pagás al recibir en zonas habilitadas." : "El producto se paga anticipadamente por transferencia bancaria o Giro Tigo. El costo del transporte se abona directamente a la transportadora."}</span></div><div className="checkout-fields"><label>Nombre y apellido*<input required value={form.full_name} onChange={e => set("full_name", e.target.value)} placeholder="Tu nombre completo" /></label><label>WhatsApp*<input required value={form.whatsapp} onChange={e => set("whatsapp", e.target.value)} placeholder="09xx xxx xxx" /></label><label>Email <span className="field-optional">(opcional)</span><input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="tu@email.com" /></label>{form.delivery_type === "delivery" && <><div className="location-box"><div><b>📍 Ubicación para facilitar la entrega</b><span>{form.maps_url ? "Ya compartiste tu ubicación." : "Podés compartir tu ubicación exacta o pegar un enlace de Google Maps."}</span>{locationStatus && <small>{locationStatus}</small>}</div><div className="location-actions"><button type="button" className="location-btn" onClick={location}>Usar mi ubicación</button><button type="button" className="location-btn secondary" onClick={pasteMaps}>Pegar enlace</button></div></div><label>Ciudad / Distrito*<select required value={form.city} onChange={e => setDeliveryCity(e.target.value)}><option value="">Seleccioná tu ciudad</option>{deliveryCities.map(c => { const f = deliveryCityFee(c); return <option key={c} value={c}>{c}{f !== null ? ` — ${Number(f).toLocaleString("es-PY")}` : " — Sin tarifa"}</option>; })}</select></label><label>Dirección <span className="field-optional">(opcional si ya compartiste tu ubicación)</span><input value={form.address} onChange={e => set("address", e.target.value)} placeholder="Calle, número y referencia" /></label></>}
       {form.delivery_type === "interior" && <><label>Departamento*<select required value={form.department} onChange={e => setDepartment(e.target.value)}><option value="">Seleccioná tu departamento</option>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select></label><label>Ciudad / Distrito*<select required value={form.city} onChange={e => setCity(e.target.value)} disabled={!form.department}><option value="">{form.department ? "Seleccioná tu ciudad" : "Primero elegí tu departamento"}</option>{citiesForDept.map(c => <option key={c} value={c}>{c}</option>)}</select></label><label>Dirección*<input required value={form.address} onChange={e => set("address", e.target.value)} placeholder="Calle, número y referencia" /></label></>}
       {form.delivery_type === "interior" && <div className="transportadora-preference"><label>Transportadora preferida <span className="field-optional">(opcional)</span><select value={form.shipping_company_id} onChange={e => { const v = e.target.value; set("shipping_company_id", v); if (v !== "otro") set("shipping_company_other", ""); }}><option value="">No tengo preferencia</option>{companiesForInteriorDept.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}<option value="otro">Otro — quiero indicar una</option></select></label>{form.shipping_company_id === "otro" && <label>¿A qué transportadora te gustaría que enviemos? <span className="field-optional">(opcional)</span><input value={form.shipping_company_other} onChange={e => set("shipping_company_other", e.target.value)} placeholder="Ej. El rápido, Nuestra Señora de la Asunción, etc." /></label>}<small className="muted">Podés dejarlo en “No tengo preferencia” y nosotros coordinamos la mejor opción disponible.</small></div>}
-      <label className="invoice-check standalone-invoice"><input type="checkbox" checked={form.invoice_requested} onChange={e => set("invoice_requested", e.target.checked)} /> <span>Solicitar factura <small>(opcional)</small></span></label>{msg && <p className="checkout-error">{msg}</p>}<button type="button" className="btn checkout-continue" onClick={() => { if (validateStep1()) setStep(2); }}>CONTINUAR</button></div></div>}
-    {step === 2 && <div className="checkout-panel panel"><h2>📦 Tu pedido</h2><div className="order-lines">{items.map(i => <div key={i.id}><span>{i.name} × {i.quantity}</span><b>{money(i.price * i.quantity)}</b></div>)}</div><div className="checkout-total"><span>Subtotal</span><strong>{money(subtotal)}</strong></div><div className="checkout-total"><span>{form.delivery_type === "delivery" ? "Delivery" : "Transporte"}</span><strong>{form.delivery_type === "delivery" ? money(deliveryFee) : "A confirmar"}</strong></div><div className="checkout-total grand"><span>Total</span><strong>{money(total)}</strong></div><div className="step-actions"><button type="button" className="btn secondary" onClick={() => setStep(1)}>← Volver</button><button type="button" className="btn" onClick={() => setStep(3)}>CONTINUAR</button></div></div>}
+      <label className="invoice-check standalone-invoice"><input type="checkbox" checked={form.invoice_requested} onChange={e => set("invoice_requested", e.target.checked)} /> <span>Solicitar factura <small>(opcional)</small></span></label>{msg && <p className="checkout-error">{msg}</p>}<button type="button" className="btn checkout-continue" onClick={() => { if (validateStep1()) goToStep(2); }}>CONTINUAR</button></div></div>}
+    {step === 2 && <div className="checkout-panel panel"><h2>📦 Tu pedido</h2><div className="order-lines">{items.map(i => <div key={i.id}><span>{i.name} × {i.quantity}</span><b>{money(i.price * i.quantity)}</b></div>)}</div><div className="checkout-total"><span>Subtotal</span><strong>{money(subtotal)}</strong></div><div className="checkout-total"><span>{form.delivery_type === "delivery" ? "Delivery" : "Transporte"}</span><strong>{form.delivery_type === "delivery" ? money(deliveryFee) : "A confirmar"}</strong></div><div className="checkout-total grand"><span>Total</span><strong>{money(total)}</strong></div><div className="step-actions"><button type="button" className="btn secondary" onClick={() => goToStep(1)}>← Volver</button><button type="button" className="btn" onClick={() => goToStep(3)}>CONTINUAR</button></div></div>}
     {step === 3 && <div className="checkout-panel panel"><h2>💳 Forma de pago</h2><label>Método de pago<select value={form.payment_method} onChange={e => set("payment_method", e.target.value)} disabled={form.delivery_type === "delivery"}><option value="Pago al recibir">Pago al recibir</option><option value="Transferencia">Transferencia bancaria</option><option value="Giro Tigo">Giro Tigo</option></select><small className="field-optional">{form.delivery_type === "delivery" ? "En Asunción y Central el pago es al recibir." : "Para envíos al interior el pago del producto es anticipado. El transporte se abona directamente a la transportadora."}</small></label>
       {form.delivery_type === "interior" && <div className="payment-receipt-box"><div><h3>📎 Comprobante de pago <span>*</span></h3><p>Adjuntá la captura o comprobante de tu transferencia o Giro Tigo. Es necesario para finalizar el pedido.</p><small>JPG, PNG, WEBP o PDF · máximo 5 MB</small></div><label className="payment-receipt-upload"><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={e => handlePaymentReceipt(e.target.files?.[0] || null)} /><span>📎 {paymentReceiptFile ? "Cambiar comprobante" : "Adjuntar comprobante"}</span></label>{paymentReceiptFile && <div className="payment-receipt-selected">✓ {paymentReceiptFile.name} · {(paymentReceiptFile.size / 1024 / 1024).toFixed(2)} MB</div>}</div>}
       {form.payment_method === "Transferencia" && <div className="payment-instructions"><h3>Datos para transferencia</h3>{banks.length ? banks.map(b => <div className="payment-box" key={b.id}><div className="payment-copy-row"><b>{b.bank}</b><button type="button" className="payment-copy" onClick={() => navigator.clipboard.writeText(b.bank)}>Copiar</button></div><div className="payment-copy-row"><span>{b.account_type || "Cuenta"}</span></div><div className="payment-copy-row"><span>N.º {b.account_number || ""}</span>{b.account_number && <button type="button" className="payment-copy" onClick={() => navigator.clipboard.writeText(b.account_number || "")}>Copiar</button>}</div><div className="payment-copy-row"><span>Titular: {b.holder_name || ""}</span>{b.holder_name && <button type="button" className="payment-copy" onClick={() => navigator.clipboard.writeText(b.holder_name || "")}>Copiar</button>}</div>{b.document && <div className="payment-copy-row"><span>CI/RUC: {b.document}</span><button type="button" className="payment-copy" onClick={() => navigator.clipboard.writeText(b.document || "")}>Copiar</button></div>}{b.alias && <div className="payment-copy-row"><span>Alias: {b.alias}</span><button type="button" className="payment-copy" onClick={() => navigator.clipboard.writeText(b.alias || "")}>Copiar</button></div>}</div>) : <p className="muted">Los datos de transferencia todavía no están configurados.</p>}<label>Referencia de operación<input value={paymentReference} onChange={e => setPaymentReference(e.target.value)} placeholder="Opcional" /></label></div>}
