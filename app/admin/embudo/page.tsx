@@ -4,80 +4,22 @@ import { useEffect, useState } from "react";
 import { createClient } from "../../../lib/supabase/browser";
 import { normalizePyWhatsapp } from "../../../lib/phone-py";
 
-const timeAgo=(iso:string)=>{
-  const mins=Math.max(1,Math.round((Date.now()-new Date(iso).getTime())/60000));
-  if(mins<60) return `hace ${mins} min`;
-  const hs=Math.round(mins/60); if(hs<24) return `hace ${hs} h`;
-  const days=Math.round(hs/24); return `hace ${days} d`;
-};
-
+const CONTACT_WHATSAPP = "595974719210";
+const DEFAULT_MESSAGE = "¡Hola, {nombre}! 😊 ¿Cómo estás?\nNotamos que casi terminaste tu compra en DF Store PY. 🛍️\nSi tuviste algún inconveniente o necesitás ayuda para finalizar el pedido, escribinos. ¡Estamos para ayudarte! 💕";
+const timeAgo=(iso:string)=>{const mins=Math.max(1,Math.round((Date.now()-new Date(iso).getTime())/60000));if(mins<60)return `hace ${mins} min`;const hs=Math.round(mins/60);if(hs<24)return `hace ${hs} h`;return `hace ${Math.round(hs/24)} d`;};
 type Stage={label:string;value:number};
 type Draft={session:string;full_name:string|null;whatsapp:string|null;email:string|null;department:string|null;city:string|null;neighborhood:string|null;address:string|null;delivery_type:string|null;payment_method:string|null;updated_at:string};
-
 export default function Embudo(){
- const [loading,setLoading]=useState(true); const [msg,setMsg]=useState("");
- const [stages,setStages]=useState<Stage[]>([]);
- const [drafts,setDrafts]=useState<Draft[]>([]);
-
- async function load(){
-  setLoading(true); setMsg("");
-  const s=createClient();
-  const [visits,views,carts,checkouts,orders,delivered,abandoned]=await Promise.all([
-   s.from("analytics_events").select("session").eq("type","visit"),
-   s.from("analytics_events").select("session").eq("type","product_view"),
-   s.from("cart_items").select("session"),
-   s.from("checkout_drafts").select("session"),
-   s.from("orders").select("id",{count:"exact",head:true}),
-   s.from("orders").select("id",{count:"exact",head:true}).eq("status","entregado"),
-   s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").is("completed_at",null).order("updated_at",{ascending:false}).limit(50)
-  ]);
-  const firstError=[visits,views,carts,checkouts,orders,delivered,abandoned].find(r=>r.error);
-  if(firstError?.error){setMsg(firstError.error.message); setLoading(false); return;}
-  const uniq=(rows:any[])=>new Set((rows||[]).map(r=>r.session)).size;
-  setStages([
-   {label:"Visitas",value:uniq(visits.data||[])},
-   {label:"Productos vistos",value:uniq(views.data||[])},
-   {label:"Carritos",value:uniq(carts.data||[])},
-   {label:"Checkout iniciado",value:uniq(checkouts.data||[])},
-   {label:"Pedidos",value:orders.count||0},
-   {label:"Entregados",value:delivered.count||0},
-  ]);
-  setDrafts((abandoned.data||[]) as Draft[]);
-  setLoading(false);
- }
+ const [loading,setLoading]=useState(true);const [msg,setMsg]=useState("");const [stages,setStages]=useState<Stage[]>([]);const [drafts,setDrafts]=useState<Draft[]>([]);const [contactNumber,setContactNumber]=useState(CONTACT_WHATSAPP);const [messageTemplate,setMessageTemplate]=useState(DEFAULT_MESSAGE);const [savingSettings,setSavingSettings]=useState(false);
+ async function load(){setLoading(true);setMsg("");const s=createClient();const [visits,views,carts,checkouts,orders,delivered,abandoned,settings]=await Promise.all([s.from("analytics_events").select("session").eq("type","visit"),s.from("analytics_events").select("session").eq("type","product_view"),s.from("cart_items").select("session"),s.from("checkout_drafts").select("session"),s.from("orders").select("id",{count:"exact",head:true}),s.from("orders").select("id",{count:"exact",head:true}).eq("status","entregado"),s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").is("completed_at",null).order("updated_at",{ascending:false}).limit(50),s.from("store_settings").select("whatsapp,abandoned_checkout_message").eq("id",1).maybeSingle()]);
+  if(settings.data?.whatsapp)setContactNumber(normalizePyWhatsapp(settings.data.whatsapp)||CONTACT_WHATSAPP);if(settings.data?.abandoned_checkout_message)setMessageTemplate(settings.data.abandoned_checkout_message);const firstError=[visits,views,carts,checkouts,orders,delivered,abandoned].find(r=>r.error);if(firstError?.error){setMsg(firstError.error.message);setLoading(false);return;}const uniq=(rows:any[])=>new Set((rows||[]).map(r=>r.session)).size;setStages([{label:"Visitas",value:uniq(visits.data||[])},{label:"Productos vistos",value:uniq(views.data||[])},{label:"Carritos",value:uniq(carts.data||[])},{label:"Checkout iniciado",value:uniq(checkouts.data||[])},{label:"Pedidos",value:orders.count||0},{label:"Entregados",value:delivered.count||0}]);setDrafts((abandoned.data||[]) as Draft[]);setLoading(false);}
  useEffect(()=>{load()},[]);
-
- async function discard(session:string){
-  if(!window.confirm("¿Descartar este checkout abandonado de la lista?"))return;
-  const s=createClient(); const {error}=await s.from("checkout_drafts").delete().eq("session",session);
-  if(error)setMsg(error.message); else setDrafts(v=>v.filter(d=>d.session!==session));
- }
-
- const total=stages[0]?.value||0;
- return <section>
-  <div className="title"><div><small>ADMINISTRADOR</small><h1>Embudo de ventas</h1></div><Link href="/admin">← Admin</Link></div>
-  {msg&&<div className="panel">⚠️ {msg}</div>}
-  <div className="panel">
-   <h2>Recorrido del cliente</h2>
-   <p className="muted">Datos reales de tu tienda, calculados desde Supabase.</p>
-   {loading?<p className="muted">Cargando...</p>:<div className="funnel-grid">
-    {stages.map(st=>{const pct=total?Math.round((st.value/total)*100):0; return <div className="funnel-card" key={st.label}>
-     <b>{st.value}</b>
-     <span>{st.label}</span>
-     <small>{pct}%</small>
-     <div className="funnel-bar"><i style={{width:`${Math.min(100,pct)}%`}}/></div>
-    </div>;})}
-   </div>}
-   <button className="btn secondary" onClick={load} disabled={loading}>{loading?"Actualizando...":"Actualizar"}</button>
-  </div>
-
-  <div className="panel">
-   <h2>Checkouts abandonados</h2>
-   <p className="muted">Clientes que empezaron a completar sus datos en el checkout pero no llegaron a confirmar el pedido. Podés contactarlos por WhatsApp para ayudarlos a terminar la compra.</p>
-   {loading?<p className="muted">Cargando...</p>:!drafts.length?<div className="empty"><h3>No hay checkouts abandonados</h3><p>Cuando alguien empiece el checkout sin terminarlo, va a aparecer acá.</p></div>:<div className="payment-list">{drafts.map(d=><div className="panel payment-row" key={d.session}>
-    <div><b>{d.full_name||"Sin nombre"}</b> · {timeAgo(d.updated_at)}<br/>{d.whatsapp&&<>📱 {d.whatsapp}<br/></>}{(d.department||d.city)&&<span className="muted">{[d.city,d.department].filter(Boolean).join(", ")}<br/></span>}{d.address&&<span className="muted">{d.address}<br/></span>}{d.delivery_type&&<span className="muted">{d.delivery_type}{d.payment_method?` · ${d.payment_method}`:""}</span>}</div>
-    <div className="actions">{d.whatsapp&&<a className="btn secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${normalizePyWhatsapp(d.whatsapp)}?text=${encodeURIComponent(`Hola ${d.full_name||""}! Vimos que casi completás tu compra en DF Store PY, ¿te ayudamos a terminarla?`)}`}>Contactar por WhatsApp</a>}<button className="link-btn danger" onClick={()=>discard(d.session)}>Descartar</button></div>
-   </div>)}</div>}
-  </div>
- </section>
+ async function saveSettings(){setSavingSettings(true);setMsg("");const s=createClient();const clean=normalizePyWhatsapp(contactNumber)||CONTACT_WHATSAPP;const {error}=await s.from("store_settings").update({whatsapp:clean,abandoned_checkout_message:messageTemplate.trim()||DEFAULT_MESSAGE}).eq("id",1);setSavingSettings(false);if(error)setMsg("No se pudieron guardar los ajustes: "+error.message);else{setContactNumber(clean);setMsg("✅ Número y mensaje guardados.");}}
+ async function discard(session:string){if(!window.confirm("¿Descartar este checkout abandonado de la lista?"))return;const {error}=await createClient().from("checkout_drafts").delete().eq("session",session);if(error)setMsg(error.message);else setDrafts(v=>v.filter(d=>d.session!==session));}
+ const total=stages[0]?.value||0;const buildMessage=(name:string|null)=>messageTemplate.replaceAll("{nombre}",name||"cliente");
+ return <section><div className="title"><div><small>ADMINISTRADOR</small><h1>Embudo de ventas</h1></div><Link href="/admin">← Admin</Link></div>{msg&&<div className="panel">⚠️ {msg}</div>}
+  <div className="panel"><h2>Recorrido del cliente</h2><p className="muted">Datos reales de tu tienda, calculados desde Supabase.</p>{loading?<p className="muted">Cargando...</p>:<div className="funnel-grid">{stages.map(st=>{const pct=total?Math.round((st.value/total)*100):0;return <div className="funnel-card" key={st.label}><b>{st.value}</b><span>{st.label}</span><small>{pct}%</small><div className="funnel-bar"><i style={{width:`${Math.min(100,pct)}%`}}/></div></div>})}</div>}<button className="btn secondary" onClick={load} disabled={loading}>{loading?"Actualizando...":"Actualizar"}</button></div>
+  <div className="panel"><h2>Contacto de checkouts abandonados</h2><p className="muted">El botón contactará al número de atención configurado, no al WhatsApp del cliente.</p><label>Número de WhatsApp de atención<input value={contactNumber} onChange={e=>setContactNumber(e.target.value)} placeholder="0974 719 210" inputMode="tel"/></label><label>Mensaje editable<small>Usá <b>{"{nombre}"}</b> para insertar automáticamente el nombre del cliente.</small><textarea rows={6} value={messageTemplate} onChange={e=>setMessageTemplate(e.target.value)}/></label><button className="btn" onClick={saveSettings} disabled={savingSettings}>{savingSettings?"Guardando...":"Guardar número y mensaje"}</button></div>
+  <div className="panel"><h2>Checkouts abandonados</h2><p className="muted">Clientes que empezaron a completar sus datos en el checkout pero no llegaron a confirmar el pedido. Podés contactarlos por WhatsApp para ayudarlos a terminar la compra.</p>{loading?<p className="muted">Cargando...</p>:!drafts.length?<div className="empty"><h3>No hay checkouts abandonados</h3><p>Cuando alguien empiece el checkout sin terminarlo, va a aparecer acá.</p></div>:<div className="payment-list">{drafts.map(d=><div className="panel payment-row" key={d.session}><div><b>{d.full_name||"Sin nombre"}</b> · {timeAgo(d.updated_at)}<br/>{d.whatsapp&&<>📱 {d.whatsapp}<br/></>}{(d.department||d.city)&&<span className="muted">{[d.city,d.department].filter(Boolean).join(", ")}<br/></span>}{d.address&&<span className="muted">{d.address}<br/></span>}{d.delivery_type&&<span className="muted">{d.delivery_type}{d.payment_method?` · ${d.payment_method}`:""}</span>}</div><div className="actions"><a className="btn secondary" target="_blank" rel="noreferrer" href={`https://wa.me/${contactNumber}?text=${encodeURIComponent(buildMessage(d.full_name))}`}>Contactar por WhatsApp</a><button className="link-btn danger" onClick={()=>discard(d.session)}>Descartar</button></div></div>)}</div>}</div>
+ </section>;
 }
