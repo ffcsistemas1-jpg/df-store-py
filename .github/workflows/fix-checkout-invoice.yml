@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Restore known good checkout version
         run: |
-          git show 4b9e8dfa3eaf7a11d504f5088f62c40f0e06b005:app/checkout/page.tsx > app/checkout/page.tsx
+          curl -fsSL https://raw.githubusercontent.com/ffcsistemas1-jpg/df-store-py/4b9e8dfa3eaf7a11d504f5088f62c40f0e06b005/app/checkout/page.tsx -o app/checkout/page.tsx
       - name: Commit repaired checkout
         run: |
           git config user.name 'github-actions[bot]'
