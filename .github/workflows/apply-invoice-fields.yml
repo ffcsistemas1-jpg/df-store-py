@@ -1,0 +1,65 @@
+name: Apply invoice fields patch
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-checkout:
+    if: ${{ !contains(github.event.head_commit.message, 'Apply invoice fields patch') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Patch checkout invoice fields
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/checkout/page.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          s = s.replace(
+              'invoice_requested: boolean; maps_url: string; note: string',
+              'invoice_requested: boolean; ruc: string; business_name: string; maps_url: string; note: string'
+          )
+          s = s.replace(
+              'invoice_requested: false, maps_url:',
+              'invoice_requested: false, ruc: "", business_name: "", maps_url:'
+          )
+          s = s.replace(
+              'invoice_requested: Boolean(row.invoice_requested), maps_url:',
+              'invoice_requested: Boolean(row.invoice_requested), ruc: row.ruc || x.ruc, business_name: row.business_name || x.business_name, maps_url:'
+          )
+          s = s.replace(
+              'invoice_requested: form.invoice_requested, maps_url:',
+              'invoice_requested: form.invoice_requested, ruc: form.ruc || null, business_name: form.business_name || null, maps_url:'
+          )
+          s = s.replace(
+              'if (form.invoice_requested &&',
+              'if (form.invoice_requested && (!form.ruc.trim() || !form.business_name.trim())) { setMsg("Completá el RUC y la razón social para solicitar factura."); return false; }\n    if (form.invoice_requested &&'
+          )
+          s = s.replace(
+              'invoice_requested: form.invoice_requested,\n',
+              'invoice_requested: form.invoice_requested,\n        ruc: form.invoice_requested ? (form.ruc.trim() || null) : null,\n        business_name: form.invoice_requested ? (form.business_name.trim() || null) : null,\n'
+          )
+          marker = '{form.invoice_requested &&'
+          if marker in s and 'className="invoice-fields"' not in s:
+              s = s.replace(
+                  marker,
+                  '{form.invoice_requested && <div className="invoice-fields"><label>RUC*<input required value={form.ruc} onChange={e => set("ruc", e.target.value)} placeholder="Ej. 80012345-6" /></label><label>Razón social*<input required value={form.business_name} onChange={e => set("business_name", e.target.value)} placeholder="Nombre o empresa para la factura" /></label></div>}\n          {form.invoice_requested &&',
+                  1
+              )
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/checkout/page.tsx
+          git diff --cached --quiet || git commit -m "Apply invoice fields patch"
+          git push
