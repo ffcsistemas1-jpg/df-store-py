@@ -1,74 +1,182 @@
 "use client";
-import {useMemo,useState} from "react";
+import { useMemo, useState } from "react";
 
-type Media={id?:string;media_type:"image"|"video";url:string;mime_type?:string|null;original_name?:string|null;sort_order?:number;is_primary?:boolean};
+type Media = {
+  id?: string;
+  media_type: "image" | "video";
+  url: string;
+  mime_type?: string | null;
+  original_name?: string | null;
+  sort_order?: number;
+  is_primary?: boolean;
+};
 
-export default function ProductMediaGallery({name,media}:{name:string;media:Media[]}){
- const items=useMemo(()=>[...media].sort((a,b)=>(Number(b.is_primary)-Number(a.is_primary))+(Number(a.sort_order||0)-Number(b.sort_order||0))),[media]);
- const [active,setActive]=useState(0);
- const current=items[active]||null;
- if(!current) return <div className="pic big product-gallery-empty"><b>DF</b></div>;
+export default function ProductMediaGallery({
+  name,
+  media,
+}: {
+  name: string;
+  media: Media[];
+}) {
+  const items = useMemo(
+    () =>
+      [...media].sort(
+        (a, b) =>
+          Number(b.is_primary) - Number(a.is_primary) +
+          (a.sort_order || 0) - (b.sort_order || 0),
+      ),
+    [media],
+  );
+  const [active, setActive] = useState(0);
+  const current = items[active] || null;
 
- return <div
-   className="product-gallery-fixed"
-   style={{width:"100%",minWidth:0,maxWidth:"100%",overflow:"hidden",boxSizing:"border-box"}}
- >
-   <div
-     className="product-gallery-stage-fixed"
-     style={{
-       position:"relative",
-       width:"100%",
-       maxWidth:"100%",
-       aspectRatio:"1 / 1",
-       height:"auto",
-       maxHeight:620,
-       background:"#f5efeb",
-       border:"1px solid #eadfe0",
-       borderRadius:18,
-       display:"flex",
-       alignItems:"center",
-       justifyContent:"center",
-       overflow:"hidden",
-       boxSizing:"border-box",
-       isolation:"isolate"
-     }}
-   >
-     {current.media_type==="image" ? <img
-       src={current.url}
-       alt={`${name} - imagen ${active+1}`}
-       style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",maxHeight:"100%",objectFit:"contain",objectPosition:"center",flex:"0 0 auto"}}
-     /> : <video
-       key={current.url}
-       src={current.url}
-       controls
-       playsInline
-       preload="metadata"
-       style={{display:"block",width:"100%",height:"100%",maxWidth:"100%",maxHeight:"100%",objectFit:"contain"}}
-     />}
-   </div>
-   {items.length>1&&<div
-     className="product-gallery-thumbs-fixed"
-     role="list"
-     aria-label="Galería del producto"
-     style={{display:"flex",flexWrap:"nowrap",gap:10,overflowX:"auto",overflowY:"hidden",padding:"12px 2px 4px",width:"100%",maxWidth:"100%",boxSizing:"border-box",position:"relative",zIndex:2}}
-   >{items.map((m,i)=><button
-     type="button"
-     key={m.id||`${m.url}-${i}`}
-     className={i===active?"active":""}
-     onClick={()=>setActive(i)}
-     aria-label={`Ver ${m.media_type==="image"?"imagen":"video"} ${i+1}`}
-     style={{flex:"0 0 72px",width:72,height:72,minWidth:72,padding:0,border:`2px solid ${i===active?"#98234d":"#eadfe0"}`,borderRadius:10,background:"#fff",overflow:"hidden",cursor:"pointer",boxSizing:"border-box"}}
-   >
-     {m.media_type==="image"?<img src={m.url} alt="" loading="lazy" style={{width:"100%",height:"100%",maxWidth:"100%",objectFit:"cover",display:"block"}}/>:<span style={{display:"flex",height:"100%",alignItems:"center",justifyContent:"center",flexDirection:"column",color:"#98234d",fontWeight:800,gap:4}}>▶<small style={{fontSize:10,letterSpacing:0}}>Video {i+1}</small></span>}
-   </button>)}
-   </div>}
-   <style jsx>{`
-     .product-gallery-fixed *{box-sizing:border-box}
-     .product-gallery-thumbs-fixed button.active{box-shadow:0 0 0 2px rgba(152,35,77,.14)}
-     @media(max-width:600px){
-       .product-gallery-stage-fixed{border-radius:14px!important}
-       .product-gallery-thumbs-fixed button{flex-basis:58px!important;width:58px!important;height:58px!important;min-width:58px!important}
-     }
-   `}</style>
- </div>;
+  if (!current) {
+    return (
+      <div style={{ width: "100%", aspectRatio: "1 / 1", display: "grid", placeItems: "center", background: "#f5efeb", borderRadius: 18 }}>
+        <b style={{ fontFamily: "Georgia", fontSize: 70, color: "#98234d" }}>DF</b>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-product-gallery="true"
+      style={{
+        display: "block",
+        position: "relative",
+        width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        overflow: "hidden",
+        boxSizing: "border-box",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          display: "block",
+          width: "100%",
+          maxWidth: "100%",
+          height: "auto",
+          aspectRatio: "1 / 1",
+          overflow: "hidden",
+          isolation: "isolate",
+          backgroundColor: "#f5efeb",
+          border: "1px solid #eadfe0",
+          borderRadius: 18,
+          boxSizing: "border-box",
+        }}
+      >
+        {current.media_type === "image" ? (
+          <img
+            key={current.url}
+            src={current.url}
+            alt={`${name} - imagen ${active + 1}`}
+            draggable={false}
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "block",
+              width: "100%",
+              height: "100%",
+              minWidth: 0,
+              minHeight: 0,
+              maxWidth: "none",
+              maxHeight: "none",
+              objectFit: "contain",
+              objectPosition: "center center",
+              margin: 0,
+              padding: 0,
+              border: 0,
+              transform: "none",
+            }}
+          />
+        ) : (
+          <video
+            key={current.url}
+            src={current.url}
+            controls
+            playsInline
+            preload="metadata"
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "block",
+              width: "100%",
+              height: "100%",
+              minWidth: 0,
+              minHeight: 0,
+              maxWidth: "none",
+              maxHeight: "none",
+              objectFit: "contain",
+              margin: 0,
+              padding: 0,
+              border: 0,
+            }}
+          />
+        )}
+      </div>
+
+      {items.length > 1 && (
+        <div
+          data-product-gallery-thumbs="true"
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "nowrap",
+            alignItems: "center",
+            gap: 10,
+            width: "100%",
+            maxWidth: "100%",
+            overflowX: "auto",
+            overflowY: "hidden",
+            padding: "12px 2px 4px",
+            boxSizing: "border-box",
+            position: "relative",
+            zIndex: 3,
+          }}
+        >
+          {items.map((item, index) => (
+            <button
+              key={item.id || `${item.url}-${index}`}
+              type="button"
+              onClick={() => setActive(index)}
+              aria-label={`Ver ${item.media_type === "image" ? "imagen" : "video"} ${index + 1}`}
+              style={{
+                flex: "0 0 64px",
+                width: 64,
+                minWidth: 64,
+                height: 64,
+                minHeight: 64,
+                display: "block",
+                padding: 0,
+                margin: 0,
+                overflow: "hidden",
+                borderRadius: 10,
+                border: `2px solid ${index === active ? "#98234d" : "#eadfe0"}`,
+                background: "#fff",
+                boxSizing: "border-box",
+                cursor: "pointer",
+              }}
+            >
+              {item.media_type === "image" ? (
+                <img
+                  src={item.url}
+                  alt=""
+                  loading="lazy"
+                  draggable={false}
+                  style={{ display: "block", width: "100%", height: "100%", objectFit: "cover", margin: 0, padding: 0, border: 0 }}
+                />
+              ) : (
+                <span style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 3, color: "#98234d", fontWeight: 800, fontSize: 18 }}>
+                  <span>▶</span>
+                  <small style={{ fontSize: 9, lineHeight: 1 }}>Video {index + 1}</small>
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
