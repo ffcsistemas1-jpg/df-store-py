@@ -1,0 +1,50 @@
+name: Apply interior payment guard
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-interior-payment-guard.yml'
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch checkout payment rules
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('app/checkout/page.tsx')
+          s = p.read_text()
+          old = 'const total = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);'
+          new = '''useEffect(() => {
+    // Regla comercial: el interior nunca puede usar Pago al recibir.
+    if (form.delivery_type === "interior" && form.payment_method === "Pago al recibir") {
+      setForm(x => ({ ...x, payment_method: "Transferencia" }));
+    }
+    if (form.delivery_type === "delivery" && form.payment_method !== "Pago al recibir") {
+      setForm(x => ({ ...x, payment_method: "Pago al recibir" }));
+    }
+  }, [form.delivery_type, form.payment_method]);
+
+  const total = useMemo(() => subtotal + deliveryFee, [subtotal, deliveryFee]);'''
+          if old not in s:
+              raise SystemExit('anchor 1 not found')
+          s = s.replace(old, new, 1)
+          old = '<option value="Pago al recibir">Pago al recibir</option><option value="Transferencia">Transferencia bancaria</option><option value="Giro Tigo">Giro Tigo</option>'
+          new = '{form.delivery_type === "delivery" && <option value="Pago al recibir">Pago al recibir</option>}<option value="Transferencia">Transferencia bancaria</option>{form.delivery_type === "interior" && <option value="Giro Tigo">Giro Tigo</option>}'
+          if old not in s:
+              raise SystemExit('anchor 2 not found')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Commit patch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app/checkout/page.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m 'Prevent cash on delivery for interior orders'
+          git push
