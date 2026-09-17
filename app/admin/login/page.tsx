@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 
+const PRODUCTION_URL = "https://df-store-py-dfstore.vercel.app";
+
 export default function AdminLogin(){
  const [email,setEmail]=useState("");
  const [busy,setBusy]=useState(false);
@@ -24,7 +26,7 @@ export default function AdminLogin(){
   e.preventDefault(); setBusy(true); setMsg(""); setSent(false);
   try{
    const s=createClient();
-   const redirectTo=`${window.location.origin}/admin/login?next=/admin`;
+   const redirectTo=`${PRODUCTION_URL}/admin/login?next=/admin`;
    const {error}=await s.auth.signInWithOtp({
     email:email.trim(),
     options:{emailRedirectTo:redirectTo,shouldCreateUser:false},
