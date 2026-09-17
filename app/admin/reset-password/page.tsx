@@ -9,33 +9,54 @@ export default function ResetPasswordPage() {
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState("Validando enlace de recuperación...");
   const router = useRouter();
 
   useEffect(() => {
-    const checkRecoverySession = async () => {
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        if (data.session) {
-          setReady(true);
-        } else {
-          setMsg("❌ El enlace de recuperación no es válido o ya venció. Solicitá uno nuevo desde el acceso administrador.");
-        }
-      } catch (error: any) {
-        setMsg("❌ " + (error?.message || "No se pudo validar el enlace de recuperación."));
+    const supabase = createClient();
+    let finished = false;
+
+    const acceptRecoverySession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        setMsg("❌ No se pudo validar el enlace de recuperación.");
+        return;
+      }
+      if (data.session) {
+        finished = true;
+        setReady(true);
+        setMsg("");
       }
     };
-    checkRecoverySession();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) {
+        finished = true;
+        setReady(true);
+        setMsg("");
+      }
+    });
+
+    acceptRecoverySession();
+
+    const timeout = window.setTimeout(() => {
+      if (!finished) {
+        setMsg("❌ El enlace de recuperación no es válido, ya venció o no está autorizado para este sitio. Solicitá uno nuevo desde el acceso administrador.");
+      }
+    }, 5000);
+
+    return () => {
+      window.clearTimeout(timeout);
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   async function updatePassword(e: React.FormEvent) {
     e.preventDefault();
     setMsg("");
 
-    if (password.length < 6) {
-      setMsg("❌ La contraseña debe tener al menos 6 caracteres.");
+    if (password.length < 8) {
+      setMsg("❌ La contraseña debe tener al menos 8 caracteres.");
       return;
     }
     if (password !== confirmation) {
@@ -48,8 +69,9 @@ export default function ResetPasswordPage() {
       const supabase = createClient();
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
+      await supabase.auth.signOut();
       setMsg("✅ Contraseña actualizada correctamente. Ya podés ingresar al administrador.");
-      setTimeout(() => {
+      window.setTimeout(() => {
         router.replace("/admin/login");
         router.refresh();
       }, 1200);
@@ -70,35 +92,17 @@ export default function ResetPasswordPage() {
         <form onSubmit={updatePassword} className="product-form admin-login-form">
           <label>
             Nueva contraseña
-            <input
-              required
-              minLength={6}
-              autoComplete="new-password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
-            />
+            <input required minLength={8} autoComplete="new-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
           </label>
           <label>
             Repetir contraseña
-            <input
-              required
-              minLength={6}
-              autoComplete="new-password"
-              type="password"
-              value={confirmation}
-              onChange={(e) => setConfirmation(e.target.value)}
-              placeholder="Repetí la contraseña"
-            />
+            <input required minLength={8} autoComplete="new-password" type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} placeholder="Repetí la contraseña" />
           </label>
-          <button className="btn" disabled={busy}>
-            {busy ? "Guardando..." : "Guardar nueva contraseña"}
-          </button>
+          <button className="btn" disabled={busy}>{busy ? "Guardando..." : "Guardar nueva contraseña"}</button>
           {msg && <p role="status">{msg}</p>}
         </form>
       ) : (
-        <p role="status">{msg || "Validando enlace..."}</p>
+        <p role="status">{msg}</p>
       )}
     </section>
   );
