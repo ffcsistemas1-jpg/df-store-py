@@ -4,8 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../../lib/supabase/client";
 
-const PRODUCTION_URL = "https://df-store-py-dfstore.vercel.app";
-
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +22,7 @@ export default function AdminLogin() {
           router.refresh();
         }
       } catch {
-        // The form remains available even if session lookup fails.
+        // Keep the form available if the session check fails.
       }
     };
     checkSession();
@@ -58,14 +56,13 @@ export default function AdminLogin() {
 
     try {
       const supabase = createClient();
+      const redirectTo = `${window.location.origin}/admin/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim().toLowerCase(),
-        {
-          redirectTo: `${PRODUCTION_URL}/admin/reset-password`,
-        }
+        { redirectTo }
       );
       if (error) throw error;
-      setMsg("✅ Te enviamos un enlace para crear una nueva contraseña. Revisá tu correo y también la carpeta de spam.");
+      setMsg("✅ Te enviamos un enlace para crear una nueva contraseña. Revisá tu correo y la carpeta de spam.");
     } catch (error: any) {
       setMsg("❌ " + (error?.message || "No se pudo enviar el enlace de recuperación."));
     } finally {
@@ -84,40 +81,14 @@ export default function AdminLogin() {
           <form onSubmit={signIn} className="product-form admin-login-form">
             <label>
               Correo administrador
-              <input
-                required
-                autoComplete="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu-correo@ejemplo.com"
-              />
+              <input required autoComplete="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu-correo@ejemplo.com" />
             </label>
             <label>
               Contraseña
-              <input
-                required
-                minLength={6}
-                autoComplete="current-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Tu contraseña"
-              />
+              <input required minLength={6} autoComplete="current-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Tu contraseña" />
             </label>
-            <button className="btn" disabled={busy}>
-              {busy ? "Ingresando..." : "Ingresar al administrador"}
-            </button>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => {
-                setMode("forgot");
-                setMsg("");
-              }}
-            >
-              ¿Olvidaste tu contraseña?
-            </button>
+            <button className="btn" disabled={busy}>{busy ? "Ingresando..." : "Ingresar al administrador"}</button>
+            <button type="button" className="link-button" onClick={() => { setMode("forgot"); setMsg(""); }}>¿Olvidaste tu contraseña?</button>
             {msg && <p role="status">{msg}</p>}
           </form>
         </>
@@ -127,28 +98,10 @@ export default function AdminLogin() {
           <form onSubmit={sendRecovery} className="product-form admin-login-form">
             <label>
               Correo administrador
-              <input
-                required
-                autoComplete="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu-correo@ejemplo.com"
-              />
+              <input required autoComplete="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="tu-correo@ejemplo.com" />
             </label>
-            <button className="btn" disabled={busy}>
-              {busy ? "Enviando..." : "Enviar enlace de recuperación"}
-            </button>
-            <button
-              type="button"
-              className="link-button"
-              onClick={() => {
-                setMode("login");
-                setMsg("");
-              }}
-            >
-              Volver al inicio de sesión
-            </button>
+            <button className="btn" disabled={busy}>{busy ? "Enviando..." : "Enviar enlace de recuperación"}</button>
+            <button type="button" className="link-button" onClick={() => { setMode("login"); setMsg(""); }}>Volver al inicio de sesión</button>
             {msg && <p role="status">{msg}</p>}
           </form>
         </>
