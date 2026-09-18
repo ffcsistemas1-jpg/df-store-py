@@ -50,12 +50,24 @@ export default async function Product({params}:{params:Promise<{id:string}>}){
     .product-description-section h2{font-size:22px;margin:0 0 12px;color:#282326}
     .product-description{font-size:17px;line-height:1.65;color:#5c5557;white-space:pre-line;overflow-wrap:anywhere;margin:0}
     @media(max-width:700px){
-      .product-detail-page{margin:24px auto;padding:0 16px}
+      .product-detail-page{margin:24px auto;padding:0 16px;padding-bottom:110px}
       .product-detail-layout{grid-template-columns:1fr;gap:20px}
       .product-detail-info{padding:20px}
       .product-detail-info h1{font-size:36px}
       .product-detail-info .price{font-size:26px}
-      .product-actions{margin-bottom:18px}
+      .product-actions{
+        position:sticky;
+        bottom:76px;
+        margin:18px -8px 20px;
+        padding:12px 8px;
+        background:rgba(255,255,255,.96);
+        border:1px solid #eadfe0;
+        border-radius:16px;
+        box-shadow:0 -8px 24px rgba(45,25,32,.12),0 4px 12px rgba(45,25,32,.08);
+        backdrop-filter:blur(10px);
+        -webkit-backdrop-filter:blur(10px);
+        z-index:20;
+      }
       .product-actions button,.product-actions a{width:100%;min-height:56px}
       .product-description-section h2{font-size:20px}
     }
