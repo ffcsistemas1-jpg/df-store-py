@@ -1,0 +1,85 @@
+/* DF Store PY — corrección de contraste y jerarquía visual móvil */
+@media (max-width: 700px) {
+  /* Evita el espacio vacío excesivo entre el encabezado y el buscador */
+  .mobile-home {
+    padding-top: 28px !important;
+  }
+
+  .mobile-home-search {
+    margin-top: 0 !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* El título del hero debe ser siempre legible sobre el fondo oscuro */
+  .mobile-home-hero,
+  .mobile-home-hero * {
+    text-shadow: none;
+  }
+
+  .mobile-home-hero h1,
+  .mobile-home-hero h1 span,
+  .mobile-home-hero h1 strong,
+  .mobile-home-hero h1 em {
+    color: #ffffff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, .28);
+  }
+
+  .mobile-home-hero h1 {
+    display: block !important;
+    font-size: clamp(29px, 8.4vw, 39px) !important;
+    line-height: 1.08 !important;
+    font-weight: 800 !important;
+    letter-spacing: -.5px !important;
+    margin: 10px 0 16px !important;
+    max-width: 100% !important;
+  }
+
+  .mobile-home-hero p {
+    color: #fff7fa !important;
+    opacity: 1 !important;
+    font-size: 15px !important;
+    line-height: 1.55 !important;
+    font-weight: 500 !important;
+  }
+
+  .mobile-home-hero-copy small {
+    color: #f6b4ca !important;
+    font-weight: 800 !important;
+    letter-spacing: 2px !important;
+  }
+
+  .mobile-home-primary {
+    background: #c23868 !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255,255,255,.25) !important;
+    box-shadow: 0 7px 18px rgba(0,0,0,.18);
+    min-height: 50px !important;
+    font-size: 14px !important;
+  }
+
+  .mobile-hero-mini-cats a {
+    background: rgba(255,255,255,.18) !important;
+    border-color: rgba(255,255,255,.35) !important;
+  }
+
+  .mobile-hero-mini-cats span {
+    color: #ffffff !important;
+    filter: none !important;
+  }
+
+  /* Más claridad en las tarjetas que aparecen debajo del hero */
+  .mobile-home-trust > div {
+    background: #ffffff !important;
+    border-color: #e6d9de !important;
+  }
+
+  .mobile-home-trust strong {
+    color: #261b20 !important;
+  }
+
+  .mobile-home-trust small {
+    color: #6e6267 !important;
+  }
+}
