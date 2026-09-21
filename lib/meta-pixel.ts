@@ -1,9 +1,8 @@
 "use client";
 
-// Envoltorio para el Meta Pixel (navegador) + Conversions API (servidor).
-// Los pedidos creados desde checkout no se reportan como Purchase hasta que
-// exista una confirmación real desde administración. Esto evita contaminar
-// las métricas de Meta con pruebas, pedidos pendientes o abandonos.
+// Envoltorio para Meta Pixel (navegador) + Conversions API (servidor).
+// Purchase se emite únicamente después de que create_order confirma un pedido real.
+// El event_id se comparte entre Pixel y CAPI para permitir deduplicación en Meta.
 
 declare global {
   interface Window {
@@ -36,9 +35,8 @@ export function newEventId() {
 export function pixelTrack(event: PixelEvent, params?: Record<string, any>, eventId?: string) {
   if (typeof window === "undefined" || !window.fbq) return;
   try {
-    const safeEvent = event === "Purchase" ? "Lead" : event;
-    if (eventId) window.fbq("track", safeEvent, params || {}, { eventID: eventId });
-    else window.fbq("track", safeEvent, params || {});
+    if (eventId) window.fbq("track", event, params || {}, { eventID: eventId });
+    else window.fbq("track", event, params || {});
   } catch {
     // Nunca dejar que un error de tracking rompa la compra.
   }
@@ -93,8 +91,8 @@ export function getAttribution(): Attribution & { fbp?: string; fbc?: string } {
 }
 
 // ---------- Conversions API (servidor) ----------
-// Por seguridad, un pedido recién creado no se envía como Purchase. Se envía
-// como Lead hasta que administración implemente la confirmación de pago/venta.
+// Purchase se envía solamente después de que create_order confirmó el pedido.
+// Los eventos de checkout previos continúan siendo eventos de embudo.
 export async function sendCapiEvent(params: {
   event_name: PixelEvent;
   event_id: string;
@@ -108,13 +106,12 @@ export async function sendCapiEvent(params: {
 }) {
   try {
     const attribution = getAttribution();
-    const safeEventName = params.event_name === "Purchase" ? "Lead" : params.event_name;
     await fetch("/api/meta-capi", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...params,
-        event_name: safeEventName,
+        event_name: params.event_name,
         event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
         fbp: attribution.fbp,
         fbc: attribution.fbc,
