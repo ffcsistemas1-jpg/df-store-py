@@ -11,7 +11,7 @@ async function getInsights(admin:any,body:any){
   const {data:settings,error}=await admin.from("store_settings").select("meta_ad_account_id").eq("id",1).maybeSingle();
   if(error)return json({configured:false,connected:false,error:error.message},500);
   const accountId=normalizeAccount(settings?.meta_ad_account_id);
-  const marketingToken=await getSecret(admin,"meta_marketing_access_token");
+  const marketingToken=(await getSecret(admin,"meta_marketing_access_token"))||await getSecret(admin,"meta_capi_access_token");
   const period=String(body?.period||"30d");
   const startDate=String(body?.startDate||"");
   const endDate=String(body?.endDate||"");
