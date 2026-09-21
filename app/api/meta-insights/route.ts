@@ -25,8 +25,18 @@ function dateParams(url: URL, period: string, startDate: string, endDate: string
     if (startDate > endDate) throw new Error("La fecha inicial no puede ser posterior a la fecha final.");
     url.searchParams.set("time_range", JSON.stringify({ since: startDate, until: endDate }));
   } else {
-    const preset = period === "1d" ? "today" : period === "7d" ? "last_7d" : period === "30d" ? "last_30d" : "maximum";
-    url.searchParams.set("date_preset", preset);
+    if (period === "1d") {
+      url.searchParams.set("date_preset", "today");
+    } else if (period === "7d" || period === "30d") {
+      const now = new Date();
+      const until = now.toISOString().slice(0, 10);
+      const sinceDate = new Date(now);
+      sinceDate.setUTCDate(sinceDate.getUTCDate() - (period === "7d" ? 6 : 29));
+      const since = sinceDate.toISOString().slice(0, 10);
+      url.searchParams.set("time_range", JSON.stringify({ since, until }));
+    } else {
+      url.searchParams.set("date_preset", "maximum");
+    }
   }
 }
 
