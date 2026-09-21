@@ -82,18 +82,27 @@ export default function Reportes() {
     };
   }, [period, startDate, endDate]);
 
-  const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "1d" ? 1 : 0;
-  const since = days ? Date.now() - days * 86400000 : 0;
+  const periodBounds = useMemo(() => {
+    const now = new Date();
+    const localKey = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+    const today = localKey(now);
+    if (period === "custom") return { from: startDate, to: endDate };
+    if (period === "1d") return { from: today, to: today };
+    if (period === "7d" || period === "30d") {
+      const d = new Date(now);
+      d.setDate(d.getDate() - (period === "7d" ? 6 : 29));
+      return { from: localKey(d), to: today };
+    }
+    return { from: "", to: "" };
+  }, [period, startDate, endDate]);
   const filteredOrders = useMemo(
     () => orders.filter((o) => {
-      if (period === "custom") {
-        const d = new Date(o.created_at);
-        const key = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-        return key >= startDate && key <= endDate;
-      }
-      return !since || new Date(o.created_at).getTime() >= since;
+      if (!periodBounds.from) return true;
+      const d = new Date(o.created_at);
+      const key = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      return key >= periodBounds.from && key <= periodBounds.to;
     }),
-    [orders, since, period, startDate, endDate]
+    [orders, periodBounds]
   );
   const validOrders = filteredOrders.filter((o) => o.status !== "cancelado");
   const delivered = validOrders.filter((o) => o.status === "entregado");
