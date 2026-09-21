@@ -42,7 +42,7 @@ async function sendCapi(admin:any,body:any){
    if(body?.content_type)customData.content_type=String(body.content_type);
    if(body?.num_items!==undefined)customData.num_items=Number(body.num_items||0);
  }
- const eventPayload={data:[{event_name:eventName,event_time:Math.floor(Date.now()/1000),event_id:eventId,action_source:"website",event_source_url:body?.event_source_url?String(body.event_source_url).slice(0,2048):undefined,user_data:userData,custom_data:customData}]};
+ const eventPayload={data:[{event_name:eventName,event_time:Number(body?.event_time)||Math.floor(Date.now()/1000),event_id:eventId,action_source:"website",event_source_url:body?.event_source_url?String(body.event_source_url).slice(0,2048):undefined,user_data:userData,custom_data:customData}]};
  const response:Response=await globalThis.fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(eventPayload)});
  const meta:any=await response.json().catch(()=>({error:"invalid_meta_response"}));
  const status=response.ok?"sent":"error";
