@@ -153,14 +153,17 @@ export default function Reportes() {
   return (
     <section className="finance-page">
       <div className="title">
-        <div><small>ADMINISTRADOR</small><h1>Finanzas</h1><p className="muted">Rentabilidad real de tu tienda · {periodLabel}</p><p className="finance-source-note">📣 Publicidad: gasto exacto reportado por Meta para este mismo período. No se acumulan períodos distintos.</p><p className="finance-source-note">📣 Publicidad: gasto exacto reportado por Meta para este mismo período. No se acumulan períodos distintos.</p></div>
+        <div><small>ADMINISTRADOR</small><h1>Finanzas</h1><p className="muted">Rentabilidad real de tu tienda · {periodLabel}</p><p className="finance-source-note">📣 Publicidad: gasto exacto reportado por Meta para este mismo período. No se acumulan períodos distintos.</p></div>
         <Link href="/admin">← Admin</Link>
       </div>
 
       <div className="filters finance-filters">
+        <button className={period === "1d" ? "active" : ""} onClick={() => setPeriod("1d")}>Hoy</button>
         <button className={period === "7d" ? "active" : ""} onClick={() => setPeriod("7d")}>7 días</button>
         <button className={period === "30d" ? "active" : ""} onClick={() => setPeriod("30d")}>30 días</button>
         <button className={period === "all" ? "active" : ""} onClick={() => setPeriod("all")}>Todo</button>
+        <button className={period === "custom" ? "active" : ""} onClick={() => setPeriod("custom")}>Personalizado</button>
+        {period === "custom" && <div className="finance-date-range"><label>Desde<input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} /></label><label>Hasta<input type="date" value={endDate} min={startDate} onChange={e => setEndDate(e.target.value)} /></label></div>}
       </div>
 
       {msg && <div className="panel finance-warning">⚠️ {msg}</div>}
