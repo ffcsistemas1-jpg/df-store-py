@@ -66,6 +66,14 @@ export async function GET(req: Request) {
   const period = params.get("period") || "1d";
   const startDate = params.get("startDate") || "";
   const endDate = params.get("endDate") || "";
+  const validDate = (v: string) => /^\\d{4}-\\d{2}-\\d{2}$/.test(v);
+
+  if (period === "custom" && (!validDate(startDate) || !validDate(endDate))) {
+    return NextResponse.json({ configured: true, connected: false, period, error: "Para un período personalizado debés indicar fecha inicial y fecha final válidas." }, { status: 400 });
+  }
+  if (validDate(startDate) && validDate(endDate) && startDate > endDate) {
+    return NextResponse.json({ configured: true, connected: false, period, error: "La fecha inicial no puede ser posterior a la fecha final." }, { status: 400 });
+  }
 
   if (!accountId) {
     return NextResponse.json({
@@ -84,6 +92,9 @@ export async function GET(req: Request) {
   const edge = await callMetaEdge(period, startDate, endDate, session?.access_token);
 
   if (edge && (edge.connected || edge.configured || edge.reason === "missing_ad_account_or_marketing_token")) {
+    if (period === "custom" && (edge.startDate !== startDate || edge.endDate !== endDate)) {
+      return NextResponse.json({ configured: true, connected: false, period, error: "Meta no devolvió exactamente el rango solicitado; se bloqueó el importe para evitar mezclar fechas." }, { status: 502, headers: { "Cache-Control": "no-store" } });
+    }
     return NextResponse.json(edge, {
       headers: { "Cache-Control": "no-store" },
     });
