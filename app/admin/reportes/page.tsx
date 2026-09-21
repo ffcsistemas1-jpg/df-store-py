@@ -36,7 +36,10 @@ export default function Reportes() {
   const [items, setItems] = useState<Item[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<MetaInsights | null>(null);
-  const localDate = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,10); };\n  const [period, setPeriod] = useState<Period>("1d");\n  const [startDate, setStartDate] = useState(localDate());\n  const [endDate, setEndDate] = useState(localDate());
+  const localDate = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,10); };
+  const [period, setPeriod] = useState<Period>("1d");
+  const [startDate, setStartDate] = useState(localDate());
+  const [endDate, setEndDate] = useState(localDate());
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
 
@@ -65,7 +68,8 @@ export default function Reportes() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const query = new URLSearchParams({ period }); if (period === "custom") { query.set("startDate", startDate); query.set("endDate", endDate); }\n      const response = await fetch(`/api/meta-insights?${query.toString()}`, { cache: "no-store" }).catch(() => null);
+      const query = new URLSearchParams({ period }); if (period === "custom") { query.set("startDate", startDate); query.set("endDate", endDate); }
+      const response = await fetch(`/api/meta-insights?${query.toString()}`, { cache: "no-store" }).catch(() => null);
       if (!response) {
         if (!cancelled) setMeta(null);
         return;
@@ -78,11 +82,18 @@ export default function Reportes() {
     };
   }, [period, startDate, endDate]);
 
-  const days = period === "7d" ? 7 : period === "30d" ? 30 : 0;
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "1d" ? 1 : 0;
   const since = days ? Date.now() - days * 86400000 : 0;
   const filteredOrders = useMemo(
-    () => orders.filter((o) => !since || new Date(o.created_at).getTime() >= since),
-    [orders, since]
+    () => orders.filter((o) => {
+      if (period === "custom") {
+        const d = new Date(o.created_at);
+        const key = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        return key >= startDate && key <= endDate;
+      }
+      return !since || new Date(o.created_at).getTime() >= since;
+    }),
+    [orders, since, period, startDate, endDate]
   );
   const validOrders = filteredOrders.filter((o) => o.status !== "cancelado");
   const delivered = validOrders.filter((o) => o.status === "entregado");
@@ -142,7 +153,7 @@ export default function Reportes() {
   return (
     <section className="finance-page">
       <div className="title">
-        <div><small>ADMINISTRADOR</small><h1>Finanzas</h1><p className="muted">Rentabilidad real de tu tienda · {periodLabel}</p><p className="finance-source-note">📣 Publicidad: gasto exacto reportado por Meta para este mismo período. No se acumulan períodos distintos.</p></div>
+        <div><small>ADMINISTRADOR</small><h1>Finanzas</h1><p className="muted">Rentabilidad real de tu tienda · {periodLabel}</p><p className="finance-source-note">📣 Publicidad: gasto exacto reportado por Meta para este mismo período. No se acumulan períodos distintos.</p><p className="finance-source-note">📣 Publicidad: gasto exacto reportado por Meta para este mismo período. No se acumulan períodos distintos.</p></div>
         <Link href="/admin">← Admin</Link>
       </div>
 
