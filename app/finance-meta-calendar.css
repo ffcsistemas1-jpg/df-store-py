@@ -1,0 +1,12 @@
+.meta-date-range,.finance-date-range{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin-top:10px;width:100%}
+.meta-date-range label,.finance-date-range label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#5d4b52}
+.meta-date-range input,.finance-date-range input{min-height:42px;border:1px solid #dfd3d8;border-radius:12px;background:#fff;padding:0 12px;color:#241b1f;font:inherit}
+.meta-date-range button,.finance-date-range button{min-height:42px}
+.finance-source-note{margin:.35rem 0 0;color:#6b5b62;font-size:.9rem}
+@media(max-width:700px){
+ .meta-date-range,.finance-date-range{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .meta-date-range label,.finance-date-range label{min-width:0}
+ .meta-date-range input,.finance-date-range input{width:100%;box-sizing:border-box}
+ .meta-date-range button,.finance-date-range button{grid-column:1/-1;width:100%}
+ .finance-source-note{font-size:.8rem;line-height:1.4}
+}
