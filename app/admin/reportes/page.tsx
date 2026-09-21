@@ -36,7 +36,9 @@ export default function Reportes() {
   const [items, setItems] = useState<Item[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<MetaInsights | null>(null);
-  const localDate = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,10); };
+  const ASUNCION_TZ = "America/Asuncion";
+  const dateKey = (value: string | Date) => new Intl.DateTimeFormat("en-CA", { timeZone: ASUNCION_TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value));
+  const localDate = () => dateKey(new Date());
   const [period, setPeriod] = useState<Period>("1d");
   const [startDate, setStartDate] = useState(localDate());
   const [endDate, setEndDate] = useState(localDate());
@@ -84,22 +86,20 @@ export default function Reportes() {
 
   const periodBounds = useMemo(() => {
     const now = new Date();
-    const localKey = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-    const today = localKey(now);
+    const today = dateKey(now);
     if (period === "custom") return { from: startDate, to: endDate };
     if (period === "1d") return { from: today, to: today };
     if (period === "7d" || period === "30d") {
       const d = new Date(now);
       d.setDate(d.getDate() - (period === "7d" ? 6 : 29));
-      return { from: localKey(d), to: today };
+      return { from: dateKey(d), to: today };
     }
     return { from: "", to: "" };
   }, [period, startDate, endDate]);
   const filteredOrders = useMemo(
     () => orders.filter((o) => {
       if (!periodBounds.from) return true;
-      const d = new Date(o.created_at);
-      const key = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+      const key = dateKey(o.created_at);
       return key >= periodBounds.from && key <= periodBounds.to;
     }),
     [orders, periodBounds]
