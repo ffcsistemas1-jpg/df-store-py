@@ -13,7 +13,7 @@ async function callMetaEdge(period: string, startDate?: string, endDate?: string
     if (startDate && endDate) { body.startDate = startDate; body.endDate = endDate; }
     const res = await fetch(`${url}/functions/v1/meta-api`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", apikey: key },
+      headers: { "Content-Type": "application/json", apikey: key, ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
       body: JSON.stringify(body),
       cache: "no-store",
     });
@@ -24,6 +24,7 @@ async function callMetaEdge(period: string, startDate?: string, endDate?: string
 export async function GET(req: Request) {
   const s = await createClient();
   const { data: { user } } = await s.auth.getUser();
+  const { data: { session } } = await s.auth.getSession();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data: isAdmin } = await s.rpc("is_admin");
   if (!isAdmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
