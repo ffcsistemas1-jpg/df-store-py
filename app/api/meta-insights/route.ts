@@ -125,7 +125,7 @@ export async function GET(req: Request) {
         purchases: cc,
         purchaseValue: cv,
         roas: cp > 0 ? cv / cp : 0,
-      });
+      }));
 
     return NextResponse.json({
       configured: true,
