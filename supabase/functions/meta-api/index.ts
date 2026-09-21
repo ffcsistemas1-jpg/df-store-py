@@ -26,7 +26,7 @@ async function sendCapi(admin:any,body:any){
  const token=await getSecret(admin,"meta_capi_access_token");
  if(!pixelId||!token)return json({status:"not_configured"});
  const rawEmail=String(body?.email||"").trim();
- const rawPhone=String(body?.phone||"").replace(/\\D/g,"");
+ const rawPhone=String(body?.phone||"").replace(/\D/g,"");
  const userData:any={...(body?.user_data||{})};
  if(rawEmail)userData.em=await sha256(rawEmail);
  if(rawPhone)userData.ph=await sha256(rawPhone);
