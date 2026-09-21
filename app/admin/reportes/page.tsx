@@ -7,7 +7,7 @@ import { createClient } from "../../../lib/supabase/browser";
 const money = (n: number) => `₲ ${Math.round(Number(n || 0)).toLocaleString("es-PY")}`;
 const pct = (n: number) => `${Number(n || 0).toFixed(1).replace(".", ",")}%`;
 
-type Period = "7d" | "30d" | "all";
+type Period = "1d" | "7d" | "30d" | "all" | "custom";
 type Order = {
   id: string;
   status: string | null;
@@ -36,7 +36,7 @@ export default function Reportes() {
   const [items, setItems] = useState<Item[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [meta, setMeta] = useState<MetaInsights | null>(null);
-  const [period, setPeriod] = useState<Period>("30d");
+  const localDate = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0,10); };\n  const [period, setPeriod] = useState<Period>("1d");\n  const [startDate, setStartDate] = useState(localDate());\n  const [endDate, setEndDate] = useState(localDate());
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
 
@@ -65,7 +65,7 @@ export default function Reportes() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const response = await fetch(`/api/meta-insights?period=${period}`, { cache: "no-store" }).catch(() => null);
+      const query = new URLSearchParams({ period }); if (period === "custom") { query.set("startDate", startDate); query.set("endDate", endDate); }\n      const response = await fetch(`/api/meta-insights?${query.toString()}`, { cache: "no-store" }).catch(() => null);
       if (!response) {
         if (!cancelled) setMeta(null);
         return;
@@ -76,7 +76,7 @@ export default function Reportes() {
     return () => {
       cancelled = true;
     };
-  }, [period]);
+  }, [period, startDate, endDate]);
 
   const days = period === "7d" ? 7 : period === "30d" ? 30 : 0;
   const since = days ? Date.now() - days * 86400000 : 0;
@@ -135,14 +135,14 @@ export default function Reportes() {
     return Object.values(map).sort((a, b) => b.sales - a.sales);
   }, [filteredItems, products]);
 
-  const periodLabel = period === "7d" ? "Últimos 7 días" : period === "30d" ? "Últimos 30 días" : "Todo el período";
+  const periodLabel = period === "1d" ? "Hoy" : period === "7d" ? "Últimos 7 días" : period === "30d" ? "Últimos 30 días" : period === "all" ? "Todo el período" : `${startDate} al ${endDate}`;
 
   if (loading) return <section><div className="panel">Cargando finanzas...</div></section>;
 
   return (
     <section className="finance-page">
       <div className="title">
-        <div><small>ADMINISTRADOR</small><h1>Finanzas</h1><p className="muted">Rentabilidad real de tu tienda · {periodLabel}</p></div>
+        <div><small>ADMINISTRADOR</small><h1>Finanzas</h1><p className="muted">Rentabilidad real de tu tienda · {periodLabel}</p><p className="finance-source-note">📣 Publicidad: gasto exacto reportado por Meta para este mismo período. No se acumulan períodos distintos.</p></div>
         <Link href="/admin">← Admin</Link>
       </div>
 
