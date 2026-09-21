@@ -5,7 +5,50 @@ const ALLOWED_EVENTS=new Set(["PageView","ViewContent","AddToCart","InitiateChec
 function json(data:unknown,status=200){return Response.json(data,{status,headers:{"Cache-Control":"no-store"}})}
 async function getSecret(admin:any,name:string){const {data,error}=await admin.rpc("get_meta_runtime_secret",{p_name:name});if(error)throw new Error(`secret_error:${name}`);return String(data||"").trim()}
 function normalizeAccount(v:unknown){return String(v||"").replace(/^act_/,"").replace(/[^0-9]/g,"")}
-async function sendCapi(admin:any,body:any){const eventName=String(body?.event_name||"");const eventId=String(body?.event_id||"").trim();if(!ALLOWED_EVENTS.has(eventName)||eventId.length<8||eventId.length>128)return json({status:"invalid_event"},400);const {data:settings,error}=await admin.from("store_settings").select("meta_pixel_id").eq("id",1).maybeSingle();if(error)return json({status:"config_error"},500);const pixelId=String(settings?.meta_pixel_id||"").trim();const token=await getSecret(admin,"meta_capi_access_token");if(!pixelId||!token)return json({status:"not_configured"});const eventPayload={data:[{event_name:eventName,event_time:Math.floor(Date.now()/1000),event_id:eventId,action_source:"website",event_source_url:body?.event_source_url?String(body.event_source_url).slice(0,2048):undefined,user_data:body?.user_data||{},custom_data:body?.custom_data||{}}]};const response:Response=await globalThis.fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(eventPayload)});const meta:any=await response.json().catch(()=>({error:"invalid_meta_response"}));return json({status:response.ok?"sent":"error",meta},response.ok?200:502)}
+async function sha256(value:string){const bytes=new TextEncoder().encode(value.trim().toLowerCase());const digest=await crypto.subtle.digest("SHA-256",bytes);return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")}
+async function sendCapi(admin:any,body:any){
+ const eventName=String(body?.event_name||"");
+ const eventId=String(body?.event_id||"").trim();
+ if(!ALLOWED_EVENTS.has(eventName)||eventId.length<8||eventId.length>128)return json({status:"invalid_event"},400);
+ if(eventName==="Purchase"){
+   const orderId=String(body?.order_id||"").trim();
+   if(!orderId)return json({status:"purchase_requires_order_id"},400);
+   const {data:order,error:orderError}=await admin.from("orders").select("id,total,event_id").eq("id",orderId).maybeSingle();
+   if(orderError)return json({status:"order_lookup_error"},500);
+   if(!order)return json({status:"purchase_order_not_found"},404);
+   const sentValue=Number(body?.value||0);
+   if(sentValue>0&&Math.abs(Number(order.total||0)-sentValue)>1)return json({status:"purchase_value_mismatch"},409);
+   if(order.event_id&&order.event_id!==eventId)return json({status:"purchase_event_mismatch"},409);
+ }
+ const {data:settings,error}=await admin.from("store_settings").select("meta_pixel_id").eq("id",1).maybeSingle();
+ if(error)return json({status:"config_error"},500);
+ const pixelId=String(settings?.meta_pixel_id||"").trim();
+ const token=await getSecret(admin,"meta_capi_access_token");
+ if(!pixelId||!token)return json({status:"not_configured"});
+ const rawEmail=String(body?.email||"").trim();
+ const rawPhone=String(body?.phone||"").replace(/\\D/g,"");
+ const userData:any={...(body?.user_data||{})};
+ if(rawEmail)userData.em=await sha256(rawEmail);
+ if(rawPhone)userData.ph=await sha256(rawPhone);
+ if(body?.fbp)userData.fbp=String(body.fbp);
+ if(body?.fbc)userData.fbc=String(body.fbc);
+ if(body?.client_ip_address)userData.client_ip_address=String(body.client_ip_address);
+ if(body?.client_user_agent)userData.client_user_agent=String(body.client_user_agent);
+ const customData:any={...(body?.custom_data||{})};
+ if(eventName==="Purchase"){
+   customData.currency=String(body?.currency||"PYG");
+   customData.value=Number(body?.value||0);
+   if(Array.isArray(body?.content_ids))customData.content_ids=body.content_ids.map((x:any)=>String(x));
+   if(body?.content_type)customData.content_type=String(body.content_type);
+   if(body?.num_items!==undefined)customData.num_items=Number(body.num_items||0);
+ }
+ const eventPayload={data:[{event_name:eventName,event_time:Math.floor(Date.now()/1000),event_id:eventId,action_source:"website",event_source_url:body?.event_source_url?String(body.event_source_url).slice(0,2048):undefined,user_data:userData,custom_data:customData}]};
+ const response:Response=await globalThis.fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(eventPayload)});
+ const meta:any=await response.json().catch(()=>({error:"invalid_meta_response"}));
+ const status=response.ok?"sent":"error";
+ try{await admin.rpc("log_meta_event",{p_event_id:eventId,p_event_name:eventName,p_source:"capi",p_order_id:body?.order_id||null,p_value:Number(body?.value||customData?.value||0)||null,p_currency:String(body?.currency||customData?.currency||"PYG"),p_status:status,p_response:meta});}catch{}
+ return json({status,meta},response.ok?200:502)
+}
 function validDate(v:string){return /^\d{4}-\d{2}-\d{2}$/.test(v)}
 function actionValue(list:unknown,matcher:RegExp){return Array.isArray(list)?list.filter((x:any)=>matcher.test(String(x?.action_type||""))).reduce((n:number,x:any)=>n+Number(x?.value||0),0):0}
 async function getAllCampaigns(accountId:string,token:string){const out:any[]=[];let nextUrl:string|null=`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/campaigns?fields=id,name,status,effective_status,configured_status&limit=100&access_token=${encodeURIComponent(token)}`;for(let i=0;i<10&&nextUrl;i++){const response:Response=await globalThis.fetch(nextUrl,{cache:"no-store"});const data:any=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data?.error?.message||"No se pudieron consultar las campañas de Meta.");out.push(...(Array.isArray(data?.data)?data.data:[]));nextUrl=typeof data?.paging?.next==="string"?data.paging.next:null}return out}
