@@ -7,6 +7,32 @@ async function getSecret(admin:any,name:string){const {data,error}=await admin.r
 function normalizeAccount(v:unknown){return String(v||"").replace(/^act_/,"").replace(/[^0-9]/g,"")}
 async function sendCapi(admin:any,body:any){const eventName=String(body?.event_name||"");const eventId=String(body?.event_id||"").trim();if(!ALLOWED_EVENTS.has(eventName)||eventId.length<8||eventId.length>128)return json({status:"invalid_event"},400);const {data:settings,error}=await admin.from("store_settings").select("meta_pixel_id").eq("id",1).maybeSingle();if(error)return json({status:"config_error"},500);const pixelId=String(settings?.meta_pixel_id||"").trim();const token=await getSecret(admin,"meta_capi_access_token");if(!pixelId||!token)return json({status:"not_configured"});const eventPayload={data:[{event_name:eventName,event_time:Math.floor(Date.now()/1000),event_id:eventId,action_source:"website",event_source_url:body?.event_source_url?String(body.event_source_url).slice(0,2048):undefined,user_data:body?.user_data||{},custom_data:body?.custom_data||{}}]};const res=await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(eventPayload)});const meta=await res.json().catch(()=>({error:"invalid_meta_response"}));return json({status:res.ok?"sent":"error",meta},res.ok?200:502)}
 function validDate(v:string){return /^\d{4}-\d{2}-\d{2}$/.test(v)}
+function actionValue(list:unknown,matcher:RegExp){return Array.isArray(list)?list.filter((x:any)=>matcher.test(String(x?.action_type||""))).reduce((n:number,x:any)=>n+Number(x?.value||0),0):0}
+async function getAllCampaigns(accountId:string,token:string){
+  const out:any[]=[];
+  let url:string|null=`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/campaigns?fields=id,name,status,effective_status,configured_status&limit=100&access_token=${encodeURIComponent(token)}`;
+  for(let i=0;i<10&&url;i++){
+    const res=await fetch(url,{cache:"no-store"});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data?.error?.message||"No se pudieron consultar las campañas de Meta.");
+    out.push(...(Array.isArray(data?.data)?data.data:[]));
+    url=typeof data?.paging?.next==="string"?data.paging.next:null;
+  }
+  return out;
+}
+async function getCampaignInsights(accountId:string,token:string,startDate:string,endDate:string,period:string){
+  const url=new URL(`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/insights`);
+  url.searchParams.set("fields","campaign_id,campaign_name,spend,impressions,reach,frequency,clicks,ctr,cpm,cpc,actions,action_values,purchase_roas");
+  url.searchParams.set("level","campaign");
+  if(validDate(startDate)&&validDate(endDate))url.searchParams.set("time_range",JSON.stringify({since:startDate,until:endDate}));
+  else url.searchParams.set("date_preset",period==="1d"?"today":period==="7d"?"last_7d":period==="30d"?"last_30d":"maximum");
+  url.searchParams.set("limit","500");
+  url.searchParams.set("access_token",token);
+  const res=await fetch(url,{cache:"no-store"});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(data?.error?.message||"No se pudieron consultar los datos de campañas.");
+  return Array.isArray(data?.data)?data.data:[];
+}
 async function getInsights(admin:any,body:any){
   const {data:settings,error}=await admin.from("store_settings").select("meta_ad_account_id").eq("id",1).maybeSingle();
   if(error)return json({configured:false,connected:false,error:error.message},500);
@@ -18,24 +44,25 @@ async function getInsights(admin:any,body:any){
   if(!accountId||!marketingToken)return json({configured:false,connected:false,period,reason:"missing_ad_account_or_marketing_token"});
   const url=new URL(`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/insights`);
   url.searchParams.set("fields","spend,impressions,reach,frequency,clicks,ctr,cpm,cpc,actions,action_values,purchase_roas");
-  if(validDate(startDate)&&validDate(endDate)){
-    if(startDate>endDate)return json({configured:true,connected:false,period,error:"La fecha inicial no puede ser posterior a la fecha final."},400);
-    url.searchParams.set("time_range",JSON.stringify({since:startDate,until:endDate}));
-  }else{
-    const datePreset=period==="1d"?"today":period==="7d"?"last_7d":period==="30d"?"last_30d":"maximum";
-    url.searchParams.set("date_preset",datePreset);
-  }
-  url.searchParams.set("level","account");
-  url.searchParams.set("access_token",marketingToken);
-  const res=await fetch(url,{cache:"no-store"});
-  const jsonData=await res.json().catch(()=>({}));
+  if(validDate(startDate)&&validDate(endDate)){if(startDate>endDate)return json({configured:true,connected:false,period,error:"La fecha inicial no puede ser posterior a la fecha final."},400);url.searchParams.set("time_range",JSON.stringify({since:startDate,until:endDate}));}
+  else{const datePreset=period==="1d"?"today":period==="7d"?"last_7d":period==="30d"?"last_30d":"maximum";url.searchParams.set("date_preset",datePreset);}
+  url.searchParams.set("level","account");url.searchParams.set("access_token",marketingToken);
+  const res=await fetch(url,{cache:"no-store"});const jsonData=await res.json().catch(()=>({}));
   if(!res.ok)return json({configured:true,connected:false,period,error:jsonData?.error?.message||"Meta API error"},502);
-  const row=jsonData?.data?.[0]||{};
-  const actionValue=(list:unknown,matcher:RegExp)=>Array.isArray(list)?list.filter((x:any)=>matcher.test(String(x?.action_type||""))).reduce((n:number,x:any)=>n+Number(x?.value||0),0):0;
-  const purchases=actionValue(row.actions,/purchase/i);
-  const purchaseValue=actionValue(row.action_values,/purchase/i);
-  const spend=Number(row.spend||0);
-  return json({configured:true,connected:true,period,startDate:validDate(startDate)?startDate:null,endDate:validDate(endDate)?endDate:null,spend,impressions:Number(row.impressions||0),reach:Number(row.reach||0),frequency:Number(row.frequency||0),clicks:Number(row.clicks||0),ctr:Number(row.ctr||0),cpm:Number(row.cpm||0),cpc:Number(row.cpc||0),purchases,purchaseValue,costPerPurchase:purchases>0?spend/purchases:0,roas:spend>0?purchaseValue/spend:0,updatedAt:new Date().toISOString()});
+  const row=jsonData?.data?.[0]||{};const purchases=actionValue(row.actions,/purchase/i);const purchaseValue=actionValue(row.action_values,/purchase/i);const spend=Number(row.spend||0);
+  let campaigns:any[]=[];
+  try{
+    const [allCampaigns,campaignInsights]=await Promise.all([getAllCampaigns(accountId,marketingToken),getCampaignInsights(accountId,marketingToken,startDate,endDate,period)]);
+    const byId=new Map<string,any>();
+    for(const c of campaignInsights){
+      const id=String(c?.campaign_id||"");if(!id)continue;
+      byId.set(id,{spend:Number(c.spend||0),impressions:Number(c.impressions||0),reach:Number(c.reach||0),frequency:Number(c.frequency||0),clicks:Number(c.clicks||0),ctr:Number(c.ctr||0),cpm:Number(c.cpm||0),cpc:Number(c.cpc||0),purchases:actionValue(c.actions,/purchase/i),purchaseValue:actionValue(c.action_values,/purchase/i),roas:Number(c.purchase_roas?.[0]?.value||0)||0});
+    }
+    campaigns=allCampaigns.map((c:any)=>{const x=byId.get(String(c.id))||{};const s=Number(x.spend||0);const pv=Number(x.purchaseValue||0);return {id:String(c.id),name:String(c.name||"Sin nombre"),status:String(c.status||""),effectiveStatus:Array.isArray(c.effective_status)?String(c.effective_status[0]||""):String(c.effective_status||""),configuredStatus:String(c.configured_status||""),spend:s,impressions:Number(x.impressions||0),reach:Number(x.reach||0),frequency:Number(x.frequency||0),clicks:Number(x.clicks||0),ctr:Number(x.ctr||0),cpm:Number(x.cpm||0),cpc:Number(x.cpc||0),purchases:Number(x.purchases||0),purchaseValue:pv,roas:s>0?pv/s:0}});
+  }catch(e:any){
+    console.error("campaigns_error",e);
+  }
+  return json({configured:true,connected:true,period,startDate:validDate(startDate)?startDate:null,endDate:validDate(endDate)?endDate:null,spend,impressions:Number(row.impressions||0),reach:Number(row.reach||0),frequency:Number(row.frequency||0),clicks:Number(row.clicks||0),ctr:Number(row.ctr||0),cpm:Number(row.cpm||0),cpc:Number(row.cpc||0),purchases,purchaseValue,costPerPurchase:purchases>0?spend/purchases:0,roas:spend>0?purchaseValue/spend:0,campaigns,updatedAt:new Date().toISOString()});
 }
 async function saveSecrets(supabase:any,body:any){const {data,isAdminError}=await supabase.rpc("is_admin").then((r:any)=>({data:r.data,isAdminError:r.error}));if(isAdminError||(!isAdminError&&data!==true))return json({error:"forbidden"},403);for(const [key,value] of [["meta_capi_access_token",body?.capiAccessToken],["meta_marketing_access_token",body?.marketingAccessToken]] as const){if(value!==undefined){const {error}=await supabase.rpc("set_meta_runtime_secret",{p_name:key,p_value:String(value||"").trim()});if(error)return json({error:"No se pudo guardar uno de los tokens de Meta."},500)}}return json({ok:true})}
 export default {fetch:withSupabase({auth:["user","publishable"]},async(req:Request,ctx:any)=>{if(req.method!=="POST")return json({error:"method_not_allowed"},405);let body:any;try{body=await req.json()}catch{return json({error:"invalid_body"},400)}try{const action=String(body?.action||"");if(action==="save_secrets")return saveSecrets(ctx.supabase,body);if(action==="capi")return sendCapi(ctx.supabaseAdmin,body);if(action==="insights")return getInsights(ctx.supabaseAdmin,body);return json({error:"unknown_action"},400)}catch(e){console.error(e);return json({error:"meta_runtime_error"},500)}})}
