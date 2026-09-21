@@ -4,7 +4,7 @@ import { createClient } from "../../../lib/supabase/server";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-async function callMetaEdge(period: string, startDate?: string, endDate?: string) {
+async function callMetaEdge(period: string, startDate?: string, endDate?: string, accessToken?: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
@@ -13,7 +13,7 @@ async function callMetaEdge(period: string, startDate?: string, endDate?: string
     if (startDate && endDate) { body.startDate = startDate; body.endDate = endDate; }
     const res = await fetch(`${url}/functions/v1/meta-api`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", apikey: key, ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
+      headers: { "Content-Type": "application/json", apikey: key, ...(session?.access_token ? { Authorization: `Bearer ${accessToken}` } : {}) },
       body: JSON.stringify(body),
       cache: "no-store",
     });
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
   const startDate = params.get("startDate") || "";
   const endDate = params.get("endDate") || "";
 
-  const edge = await callMetaEdge(period, startDate, endDate);
+  const edge = await callMetaEdge(period, startDate, endDate, session?.access_token);
   if (edge?.connected || edge?.configured || edge?.reason === "missing_ad_account_or_marketing_token") return NextResponse.json(edge);
   if (!accountId) return NextResponse.json({ configured: false, connected: false, period, spend: 0, impressions: 0, clicks: 0, purchases: 0, purchaseValue: 0, reason: "missing_ad_account" });
   return NextResponse.json({ configured: false, connected: false, period, spend: 0, impressions: 0, clicks: 0, purchases: 0, purchaseValue: 0, reason: "marketing_api_not_configured" });
