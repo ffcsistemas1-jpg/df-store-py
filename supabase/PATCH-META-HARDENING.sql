@@ -63,7 +63,8 @@ begin
   on conflict(event_name,event_id) do update
     set order_id = coalesce(excluded.order_id, public.meta_event_dispatches.order_id),
         status = 'claimed', claimed_at = now(), completed_at = null
-    where public.meta_event_dispatches.status in ('error','network_error','not_configured');
+    where public.meta_event_dispatches.status in ('error','network_error','not_configured')
+       or (public.meta_event_dispatches.status='claimed' and public.meta_event_dispatches.claimed_at < now() - interval '10 minutes');
 
   get diagnostics v_claimed = row_count;
   return v_claimed;
