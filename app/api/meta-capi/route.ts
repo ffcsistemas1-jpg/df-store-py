@@ -39,7 +39,11 @@ export async function POST(req: NextRequest) {
   try {
     const response = await fetch(`${supabaseUrl}/functions/v1/meta-api`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", apikey: publishableKey },
+      headers: {
+        "Content-Type": "application/json",
+        apikey: publishableKey,
+        Authorization: `Bearer ${publishableKey}`,
+      },
       body: JSON.stringify(forwardBody),
       cache: "no-store",
     });
