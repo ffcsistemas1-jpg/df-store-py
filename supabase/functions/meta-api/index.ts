@@ -1,5 +1,9 @@
 // @ts-ignore Deno-only npm: specifier; Supabase Edge Runtime resolves this module.
 import { withSupabase } from "npm:@supabase/server@^1";
+
+// Supabase Edge Functions run on Deno. This declaration keeps Vercel's
+// repository-wide TypeScript check from failing on the Deno global.
+declare const Deno: { env: { get(name: string): string | undefined } };
 const GRAPH_VERSION="v26.0";
 const ALLOWED_EVENTS=new Set(["PageView","ViewContent","AddToCart","InitiateCheckout","Purchase"]);
 function json(data:unknown,status=200){return Response.json(data,{status,headers:{"Cache-Control":"no-store"}})}
