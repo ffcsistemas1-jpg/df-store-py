@@ -115,6 +115,12 @@ export async function sendCapiEvent(params: {
         event_source_url: typeof window !== "undefined" ? window.location.href : undefined,
         fbp: attribution.fbp,
         fbc: attribution.fbc,
+        user_data: {
+          fbp: attribution.fbp,
+          fbc: attribution.fbc,
+          email: params.email || undefined,
+          phone: params.phone || undefined,
+        },
       }),
       keepalive: true,
     });
