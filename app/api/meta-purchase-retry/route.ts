@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
   const response = await fetch(`${supabaseUrl}/functions/v1/meta-api`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: publishableKey, Authorization: `Bearer \${publishableKey}` },
+    headers: { "Content-Type": "application/json", apikey: publishableKey, Authorization: `Bearer ${publishableKey}` },
     body: JSON.stringify({
       action: "capi",
       event_name: "Purchase",
