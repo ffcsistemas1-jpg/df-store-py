@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
-import { createClient } from "../../../lib/supabase/server";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function POST(req: Request) {
   const authHeader = req.headers.get("authorization");
-  const accessToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : undefined;
-  const s = await createClient(accessToken);
+  const accessToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !publishableKey) return NextResponse.json({ error: "supabase_not_configured" }, { status: 500 });
+  if (!accessToken) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const s = createSupabaseClient(supabaseUrl, publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
   const { data: { user } } = await s.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data: isAdmin } = await s.rpc("is_admin");
