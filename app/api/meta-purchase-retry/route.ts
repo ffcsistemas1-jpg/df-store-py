@@ -5,7 +5,9 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function POST(req: Request) {
-  const s = await createClient();
+  const authHeader = req.headers.get("authorization");
+  const accessToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : undefined;
+  const s = await createClient(accessToken);
   const { data: { user } } = await s.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { data: isAdmin } = await s.rpc("is_admin");
