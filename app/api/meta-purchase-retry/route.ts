@@ -9,19 +9,28 @@ export async function POST(req: Request) {
   const accessToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
   if (!supabaseUrl || !publishableKey) return NextResponse.json({ error: "supabase_not_configured" }, { status: 500 });
   if (!accessToken) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const s = createSupabaseClient(supabaseUrl, publishableKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
+
   const { data: { user } } = await s.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { data: isAdmin } = await s.rpc("is_admin");
   if (!isAdmin) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   let body: any;
-  try { body = await req.json(); } catch { return NextResponse.json({ error: "invalid_body" }, { status: 400 }); }
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "invalid_body" }, { status: 400 });
+  }
+
   const orderId = String(body?.order_id || "").trim();
   if (!orderId) return NextResponse.json({ error: "order_id_required" }, { status: 400 });
 
@@ -30,6 +39,7 @@ export async function POST(req: Request) {
     .select("id,total,created_at,event_id,fbp,fbc,utm_source,utm_campaign,utm_content")
     .eq("id", orderId)
     .maybeSingle();
+
   if (orderError) return NextResponse.json({ error: orderError.message }, { status: 500 });
   if (!order) return NextResponse.json({ error: "order_not_found" }, { status: 404 });
   if (String(body?.confirm || "") !== "yes") return NextResponse.json({ error: "confirmation_required" }, { status: 400 });
@@ -41,13 +51,13 @@ export async function POST(req: Request) {
     if (error) return NextResponse.json({ error: "No se pudo asignar el event_id al pedido." }, { status: 500 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !publishableKey) return NextResponse.json({ error: "meta_not_configured" }, { status: 500 });
-
   const response = await fetch(`${supabaseUrl}/functions/v1/meta-api`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: publishableKey, Authorization: `Bearer ${publishableKey}` },
+    headers: {
+      "Content-Type": "application/json",
+      apikey: publishableKey,
+      Authorization: `Bearer ${publishableKey}`,
+    },
     body: JSON.stringify({
       action: "capi",
       event_name: "Purchase",
@@ -64,6 +74,7 @@ export async function POST(req: Request) {
     }),
     cache: "no-store",
   });
+
   const result = await response.json().catch(() => ({ status: "invalid_edge_response" }));
   return NextResponse.json(result, { status: response.status });
 }
