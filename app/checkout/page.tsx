@@ -243,7 +243,7 @@ export default function Checkout() {
       const { data, error } = await s.rpc("create_order", {
         p_customer: {
           full_name: form.full_name.trim(), whatsapp: normalizePyWhatsapp(form.whatsapp), email: form.email.trim() || null,
-          department: form.department || null, city: form.city || null, neighborhood: null, address: form.address.trim() || null,
+          department: form.department || null, city: form.city || null, neighborhood: null, address: form.address.trim() || (form.delivery_type === "delivery" ? "No indicada" : null),
           preferred_time: form.preferred_time || null, invoice_requested: form.invoice_requested, ruc: form.ruc || null, business_name: form.business_name || null, maps_url: form.maps_url.trim() || null,
           note: form.shipping_company_other.trim() ? `Transportadora solicitada por el cliente: ${form.shipping_company_other.trim()}` : null
         },
