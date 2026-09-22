@@ -25,10 +25,32 @@ async function sendCapi(admin:any,body:any){
   const publishableKey=String(Deno.env.get("SUPABASE_ANON_KEY")||Deno.env.get("SUPABASE_PUBLISHABLE_KEY")||"").trim();
   if(!supabaseUrl||!publishableKey)return json({status:"not_configured"});
 
+  let order:any=null;
   if(eventName==="Purchase"){
     const {data:claimed,error:claimError}=await admin.rpc("claim_meta_event",{p_event_name:eventName,p_event_id:eventId,p_order_id:orderId});
     if(claimError)return json({status:"claim_error",error:claimError.message},500);
     if(claimed!==true)return json({status:"duplicate_or_invalid_purchase",event_id:eventId},200);
+
+    const {data:found,error:orderError}=await admin.from("orders")
+      .select("id,total,event_id,customer_id,fbp,fbc,landing_page,created_at")
+      .eq("id",orderId).maybeSingle();
+    if(orderError)return json({status:"order_lookup_error",error:orderError.message},500);
+    if(!found)return json({status:"purchase_order_not_found"},404);
+    if(String(found.event_id||"")!==eventId)return json({status:"purchase_event_mismatch"},409);
+
+    const [{data:customer},{data:items}]=await Promise.all([
+      found.customer_id ? admin.from("customers").select("email,whatsapp").eq("id",found.customer_id).maybeSingle() : Promise.resolve({data:null}),
+      admin.from("order_items").select("product_id,quantity").eq("order_id",orderId).order("id",{ascending:true})
+    ]);
+    if(!body.email&&customer?.email)body.email=customer.email;
+    if(!body.phone&&customer?.whatsapp)body.phone=customer.whatsapp;
+    if(!body.fbp&&found.fbp)body.fbp=found.fbp;
+    if(!body.fbc&&found.fbc)body.fbc=found.fbc;
+    if(!body.event_source_url&&found.landing_page)body.event_source_url=found.landing_page;
+    if(!Array.isArray(body.content_ids))body.content_ids=(items||[]).map((x:any)=>String(x.product_id));
+    if(body.num_items===undefined)body.num_items=(items||[]).reduce((n:number,x:any)=>n+Number(x.quantity||0),0);
+    body.value=Number(found.total||0);
+    body.currency="PYG";
   }
 
   const {data:settings,error:settingsError}=await admin.from("store_settings").select("meta_pixel_id").eq("id",1).maybeSingle();
