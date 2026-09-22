@@ -5,7 +5,6 @@ const ALLOWED_EVENTS=new Set(["PageView","ViewContent","AddToCart","InitiateChec
 function json(data:unknown,status=200){return Response.json(data,{status,headers:{"Cache-Control":"no-store"}})}
 async function getSecret(admin:any,name:string){const {data,error}=await admin.rpc("get_meta_runtime_secret",{p_name:name});if(error)throw new Error(`secret_error:${name}`);return String(data||"").trim()}
 function normalizeAccount(v:unknown){return String(v||"").replace(/^act_/,"").replace(/[^0-9]/g,"")}
-async function sha256(value:string){const bytes=new TextEncoder().encode(value.trim().toLowerCase());const digest=await crypto.subtle.digest("SHA-256",bytes);return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")}
 async function sha256(value:string){
   const data=new TextEncoder().encode(value.trim().toLowerCase());
   const hash=await crypto.subtle.digest("SHA-256",data);
