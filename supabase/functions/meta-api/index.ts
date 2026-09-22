@@ -6,91 +6,93 @@ function json(data:unknown,status=200){return Response.json(data,{status,headers
 async function getSecret(admin:any,name:string){const {data,error}=await admin.rpc("get_meta_runtime_secret",{p_name:name});if(error)throw new Error(`secret_error:${name}`);return String(data||"").trim()}
 function normalizeAccount(v:unknown){return String(v||"").replace(/^act_/,"").replace(/[^0-9]/g,"")}
 async function sha256(value:string){const bytes=new TextEncoder().encode(value.trim().toLowerCase());const digest=await crypto.subtle.digest("SHA-256",bytes);return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")}
-async function sendCapi(admin:any,body:any){
- const eventName=String(body?.event_name||"");
- const eventId=String(body?.event_id||"").trim();
- if(!ALLOWED_EVENTS.has(eventName)||eventId.length<8||eventId.length>128)return json({status:"invalid_event"},400);
-
- let order:any=null;
- if(eventName==="Purchase"){
-   const orderId=String(body?.order_id||"").trim();
-   if(!orderId)return json({status:"purchase_requires_order_id"},400);
-   const {data:found,error:orderError}=await admin.from("orders").select("id,total,event_id,customer_id,fbp,fbc,landing_page,created_at").eq("id",orderId).maybeSingle();
-   if(orderError)return json({status:"order_lookup_error"},500);
-   if(!found)return json({status:"purchase_order_not_found"},404);
-   order=found;
-   if(order.event_id&&order.event_id!==eventId)return json({status:"purchase_event_mismatch"},409);
-   const sentValue=Number(body?.value||0);
-   if(sentValue>0&&Math.abs(Number(order.total||0)-sentValue)>1)return json({status:"purchase_value_mismatch"},409);
-
-   const {data:claimed,error:claimError}=await admin.rpc("claim_meta_event",{p_event_name:eventName,p_event_id:eventId,p_order_id:orderId});
-   if(claimError)return json({status:"idempotency_not_configured",error:claimError.message},503);
-   if(!claimed){
-     const {data:dispatch}=await admin.from("meta_event_dispatches").select("status").eq("event_name",eventName).eq("event_id",eventId).maybeSingle();
-     if(dispatch?.status==="sent")return json({status:"already_sent",event_id:eventId});
-     return json({status:"already_processing",event_id:eventId},202);
-   }
-
-   const [{data:customer},{data:items}]=await Promise.all([
-     admin.from("customers").select("email,whatsapp").eq("id",order.customer_id).maybeSingle(),
-     admin.from("order_items").select("product_id,quantity").eq("order_id",orderId).order("id",{ascending:true})
-   ]);
-   body={...body};
-   if(!body.email&&customer?.email)body.email=customer.email;
-   if(!body.phone&&customer?.whatsapp)body.phone=customer.whatsapp;
-   if(!Array.isArray(body.content_ids))body.content_ids=(items||[]).map((x:any)=>String(x.product_id));
-   if(body.num_items===undefined)body.num_items=(items||[]).reduce((n:number,x:any)=>n+Number(x.quantity||0),0);
-   if(!body.fbp&&order.fbp)body.fbp=order.fbp;
-   if(!body.fbc&&order.fbc)body.fbc=order.fbc;
-   if(!body.event_source_url&&order.landing_page)body.event_source_url=order.landing_page;
-   body.value=Number(order.total||0);
-   body.currency="PYG";
- }
-
- const {data:settings,error}=await admin.from("store_settings").select("meta_pixel_id").eq("id",1).maybeSingle();
- if(error){
-   if(eventName==="Purchase")await admin.rpc("record_meta_event_result",{p_event_id:eventId,p_event_name:eventName,p_order_id:body?.order_id||null,p_value:Number(body?.value||0)||null,p_currency:"PYG",p_status:"error",p_response:{status:"config_error"}});
-   return json({status:"config_error"},500);
- }
- const pixelId=String(settings?.meta_pixel_id||"").trim();
- const token=await getSecret(admin,"meta_capi_access_token");
- if(!pixelId||!token){
-   if(eventName==="Purchase")await admin.rpc("record_meta_event_result",{p_event_id:eventId,p_event_name:eventName,p_order_id:body?.order_id||null,p_value:Number(body?.value||0)||null,p_currency:"PYG",p_status:"not_configured",p_response:{status:"not_configured"}});
-   return json({status:"not_configured"});
- }
- const rawEmail=String(body?.email||"").trim();
- const rawPhone=String(body?.phone||"").replace(/\D/g,"");
- const userData:any={...(body?.user_data||{})};
- if(rawEmail)userData.em=await sha256(rawEmail);
- if(rawPhone)userData.ph=await sha256(rawPhone);
- if(body?.fbp)userData.fbp=String(body.fbp);
- if(body?.fbc)userData.fbc=String(body.fbc);
- if(body?.client_ip_address)userData.client_ip_address=String(body.client_ip_address);
- if(body?.client_user_agent)userData.client_user_agent=String(body.client_user_agent);
- const customData:any={...(body?.custom_data||{})};
- if(eventName==="Purchase"){
-   customData.currency="PYG";
-   customData.value=Number(body?.value||0);
-   if(Array.isArray(body?.content_ids))customData.content_ids=body.content_ids.map((x:any)=>String(x));
-   if(body?.content_type)customData.content_type=String(body.content_type);
-   if(body?.num_items!==undefined)customData.num_items=Number(body.num_items||0);
- }
- const eventPayload={data:[{event_name:eventName,event_time:Number(body?.event_time)||Math.floor(Date.now()/1000),event_id:eventId,action_source:"website",event_source_url:body?.event_source_url?String(body.event_source_url).slice(0,2048):undefined,user_data:userData,custom_data:customData}]};
- let response:Response;
- let meta:any;
- try{
-   response=await globalThis.fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(eventPayload)});
-   meta=await response.json().catch(()=>({error:"invalid_meta_response"}));
- }catch(e:any){
-   if(eventName==="Purchase")await admin.rpc("record_meta_event_result",{p_event_id:eventId,p_event_name:eventName,p_order_id:body?.order_id||null,p_value:Number(body?.value||0)||null,p_currency:"PYG",p_status:"network_error",p_response:{error:String(e?.message||e)}});
-   return json({status:"network_error"},502);
- }
- const status=response.ok?"sent":"error";
- try{
-   await admin.rpc("record_meta_event_result",{p_event_id:eventId,p_event_name:eventName,p_order_id:body?.order_id||null,p_value:Number(body?.value||customData?.value||0)||null,p_currency:String(body?.currency||customData?.currency||"PYG"),p_status:status,p_response:meta});
- }catch(e){console.error("meta_log_error",e)}
- return json({status,meta},response.ok?200:502);
+async function sha256(value:string){
+  const data=new TextEncoder().encode(value.trim().toLowerCase());
+  const hash=await crypto.subtle.digest("SHA-256",data);
+  return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,"0")).join("");
 }
+async function sendCapi(admin:any,body:any){
+  const eventName=String(body?.event_name||"");
+  const eventId=String(body?.event_id||"").trim();
+  const orderId=body?.order_id?String(body.order_id):undefined;
+  if(!ALLOWED_EVENTS.has(eventName)||eventId.length<8||eventId.length>128)return json({status:"invalid_event"},400);
+  if(eventName==="Purchase"&&!orderId)return json({status:"purchase_requires_order_id"},400);
+
+  const supabaseUrl=String(Deno.env.get("SUPABASE_URL")||"").trim();
+  const publishableKey=String(Deno.env.get("SUPABASE_ANON_KEY")||Deno.env.get("SUPABASE_PUBLISHABLE_KEY")||"").trim();
+  if(!supabaseUrl||!publishableKey)return json({status:"not_configured"});
+
+  if(eventName==="Purchase"){
+    const {data:claimed,error:claimError}=await admin.rpc("claim_meta_event",{p_event_name:eventName,p_event_id:eventId,p_order_id:orderId});
+    if(claimError)return json({status:"claim_error",error:claimError.message},500);
+    if(claimed!==true)return json({status:"duplicate_or_invalid_purchase",event_id:eventId},200);
+  }
+
+  const {data:settings,error:settingsError}=await admin.from("store_settings").select("meta_pixel_id").eq("id",1).maybeSingle();
+  if(settingsError){
+    if(eventName==="Purchase")await admin.rpc("record_meta_event_result",{p_event_id:eventId,p_event_name:eventName,p_order_id:orderId,p_value:Number(body?.value||0),p_currency:String(body?.currency||"PYG"),p_status:"error",p_response:{error:settingsError.message}});
+    return json({status:"config_error"},500);
+  }
+  const pixelId=String(settings?.meta_pixel_id||"").trim();
+  const token=await getSecret(admin,"meta_capi_access_token");
+  if(!pixelId||!token){
+    if(eventName==="Purchase")await admin.rpc("record_meta_event_result",{p_event_id:eventId,p_event_name:eventName,p_order_id:orderId,p_value:Number(body?.value||0),p_currency:String(body?.currency||"PYG"),p_status:"not_configured",p_response:{reason:"missing_pixel_or_token"}});
+    return json({status:"not_configured"});
+  }
+
+  const rawUser=body?.user_data||{};
+  const userData:any={
+    fbp:rawUser.fbp||body?.fbp||undefined,
+    fbc:rawUser.fbc||body?.fbc||undefined,
+    client_ip_address:body?.client_ip_address||undefined,
+    client_user_agent:body?.client_user_agent||undefined,
+  };
+  if(rawUser.email||body?.email)userData.em=await sha256(String(rawUser.email||body.email));
+  if(rawUser.phone||body?.phone)userData.ph=await sha256(String(rawUser.phone||body.phone));
+  const customData={...(body?.custom_data||{})};
+  if(body?.value!==undefined)customData.value=Number(body.value);
+  if(body?.currency)customData.currency=String(body.currency);
+  if(body?.content_ids)customData.content_ids=body.content_ids;
+  if(body?.content_type)customData.content_type=body.content_type;
+  if(body?.num_items!==undefined)customData.num_items=Number(body.num_items);
+
+  const eventPayload={data:[{
+    event_name:eventName,
+    event_time:Math.floor(Date.now()/1000),
+    event_id:eventId,
+    action_source:"website",
+    event_source_url:body?.event_source_url?String(body.event_source_url).slice(0,2048):undefined,
+    user_data:userData,
+    custom_data:customData
+  }]};
+
+  try{
+    const response:Response=await globalThis.fetch(`https://graph.facebook.com/${GRAPH_VERSION}/${pixelId}/events?access_token=${encodeURIComponent(token)}`,{
+      method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(eventPayload)
+    });
+    const meta:any=await response.json().catch(()=>({error:"invalid_meta_response"}));
+    const status=response.ok?"sent":"error";
+    if(eventName==="Purchase"){
+      await admin.rpc("record_meta_event_result",{
+        p_event_id:eventId,p_event_name:eventName,p_order_id:orderId,
+        p_value:Number(body?.value||0),p_currency:String(body?.currency||"PYG"),
+        p_status:status,p_response:meta
+      });
+    }
+    return json({status,meta},response.ok?200:502);
+  }catch(e:any){
+    const response={error:String(e?.message||"network_error")};
+    if(eventName==="Purchase"){
+      await admin.rpc("record_meta_event_result",{
+        p_event_id:eventId,p_event_name:eventName,p_order_id:orderId,
+        p_value:Number(body?.value||0),p_currency:String(body?.currency||"PYG"),
+        p_status:"network_error",p_response:response
+      });
+    }
+    return json({status:"network_error"},502);
+  }
+}
+
 function validDate(v:string){return /^\d{4}-\d{2}-\d{2}$/.test(v)}
 function actionValue(list:unknown,matcher:RegExp){return Array.isArray(list)?list.filter((x:any)=>matcher.test(String(x?.action_type||""))).reduce((n:number,x:any)=>n+Number(x?.value||0),0):0}
 async function getAllCampaigns(accountId:string,token:string){const out:any[]=[];let nextUrl:string|null=`https://graph.facebook.com/${GRAPH_VERSION}/act_${accountId}/campaigns?fields=id,name,status,effective_status,configured_status&limit=100&access_token=${encodeURIComponent(token)}`;for(let i=0;i<10&&nextUrl;i++){const response:Response=await globalThis.fetch(nextUrl,{cache:"no-store"});const data:any=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data?.error?.message||"No se pudieron consultar las campañas de Meta.");out.push(...(Array.isArray(data?.data)?data.data:[]));nextUrl=typeof data?.paging?.next==="string"?data.paging.next:null}return out}
