@@ -38,7 +38,7 @@ export async function POST(req: Request) {
 
   const response = await fetch(`${supabaseUrl}/functions/v1/meta-api`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: publishableKey },
+    headers: { "Content-Type": "application/json", apikey: publishableKey, Authorization: `Bearer \${publishableKey}` },
     body: JSON.stringify({
       action: "capi",
       event_name: "Purchase",
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       fbp: order.fbp || undefined,
       fbc: order.fbc || undefined,
       custom_data: { currency: "PYG", value: Number(order.total || 0) },
-      event_source_url: "https://df-store-py-dfstore.vercel.app/",
+      event_source_url: req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL || "https://df-store-py-ebon.vercel.app",
     }),
     cache: "no-store",
   });
