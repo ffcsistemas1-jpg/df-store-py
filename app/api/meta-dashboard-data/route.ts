@@ -34,7 +34,7 @@ export async function GET(req:Request){
   const visits=s.from("analytics_events").select("session").eq("type","visit");
   const views=s.from("analytics_events").select("session").eq("type","product_view");
   const carts=s.from("cart_items").select("session");
-  const checkouts=s.from("checkout_drafts").select("session");
+  const checkouts=s.from("checkout_drafts").select("session,completed_at");
   const orders=s.from("orders").select("id,created_at,total,utm_source,utm_campaign,fbclid,event_id").neq("status","cancelado").order("created_at",{ascending:false}).limit(1000);
   const metaEvents=s.from("meta_events_log").select("id,event_id,event_name,status,value,currency,created_at,order_id").order("created_at",{ascending:false}).limit(1000);
 
@@ -57,6 +57,7 @@ export async function GET(req:Request){
     ViewContent:uniq(pv.data||[]),
     AddToCart:uniq(ca.data||[]),
     InitiateCheckout:uniq(ch.data||[]),
+    CheckoutAbandoned:new Set((ch.data||[]).filter((x:any)=>!x.completed_at).map((x:any)=>x.session).filter(Boolean)).size,
     Purchase:(ord.data||[]).length
   };
   return NextResponse.json({
