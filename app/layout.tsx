@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SITE_URL, SITE_DESCRIPTION } from "../lib/seo";
 import "./globals.css";
 import "./storefront-polish.css";
 import "./checkout-polish.css";
@@ -18,6 +19,6 @@ import { CartProvider,Header,WhatsAppButton,TopBanner,ServiceWorkerRegister,Site
 import MetaPixelRuntime from "./meta-pixel-runtime";
 import PaymentDeliveryFix from "./checkout/payment-delivery-fix";
 
-export const metadata:Metadata={title:"DF Store PY",description:"Todo lo que buscan en un solo lugar",manifest:"/manifest.webmanifest",appleWebApp:{capable:true,statusBarStyle:"default",title:"DF Store PY"},icons:{icon:"/icons/icon-192.png",apple:"/icons/icon-192.png"}};
+export const metadata:Metadata={metadataBase:new URL(SITE_URL),title:"DF Store PY | Tienda online en Paraguay",description:SITE_DESCRIPTION,openGraph:{type:"website",siteName:"DF Store PY",locale:"es_PY",title:"DF Store PY | Tienda online en Paraguay",description:SITE_DESCRIPTION},manifest:"/manifest.webmanifest",appleWebApp:{capable:true,statusBarStyle:"default",title:"DF Store PY"},icons:{icon:"/icons/icon-192.png",apple:"/icons/icon-192.png"}};
 export const viewport:Viewport={themeColor:"#98234d"};
 export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="es"><body><a className="skip-link" href="#contenido-principal">Saltar al contenido principal</a><MetaPixelRuntime/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main id="contenido-principal" tabIndex={-1}>{children}</main><PaymentDeliveryFix/><WhatsAppButton/><MobileCustomerNav/><SiteFooter/></CartProvider></body></html>}

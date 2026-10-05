@@ -1,8 +1,9 @@
+import { SITE_URL } from "../lib/seo";
 import type { MetadataRoute } from "next";
 import { getProducts } from "../lib/products";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = process.env.NEXT_PUBLIC_SITE_URL || "https://df-store-py-dfstore.vercel.app";
+  const base = SITE_URL;
   const products = await getProducts();
   const staticEntries: MetadataRoute.Sitemap = [
     { url: `${base}/`, changeFrequency: "daily", priority: 1 },
