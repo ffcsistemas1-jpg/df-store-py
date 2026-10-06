@@ -227,7 +227,7 @@ export default function Reportes() {
         <div className="finance-section-head"><div><h2>Publicidad de Meta</h2><p className="muted">Datos disponibles desde la cuenta publicitaria conectada.</p></div><Link href="/admin/meta-ads" className="btn">Ver Meta Ads →</Link></div>
         <div className="finance-meta-grid">
           <div><span>Gasto Meta</span><strong>{money(adSpend)}</strong></div>
-          <div><span>Compras atribuidas</span><strong>{Number(meta?.purchases || 0).toLocaleString("es-PY")}</strong></div>
+          <div><span>Compras atribuidas por Meta</span><strong>{Number(meta?.purchases || 0).toLocaleString("es-PY")}</strong></div>
           <div><span>Costo por compra</span><strong>{money(Number(meta?.costPerPurchase || 0))}</strong></div>
           <div><span>ROAS</span><strong>{Number(meta?.roas || 0).toFixed(2)}×</strong></div>
         </div>
