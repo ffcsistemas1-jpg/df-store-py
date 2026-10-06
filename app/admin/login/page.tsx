@@ -21,9 +21,7 @@ export default function AdminLogin() {
           router.replace("/admin");
           router.refresh();
         }
-      } catch {
-        // Keep the form available if the session check fails.
-      }
+      } catch {}
     };
     checkSession();
   }, [router]);
@@ -32,7 +30,6 @@ export default function AdminLogin() {
     e.preventDefault();
     setBusy(true);
     setMsg("");
-
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({
@@ -53,7 +50,6 @@ export default function AdminLogin() {
     e.preventDefault();
     setBusy(true);
     setMsg("");
-
     try {
       const supabase = createClient();
       const redirectTo = `${window.location.origin}/admin/reset-password`;
@@ -72,12 +68,21 @@ export default function AdminLogin() {
 
   return (
     <section className="admin-login-page">
-      <small>DF STORE PY</small>
-      <h1>Acceso administrador</h1>
+      <div className="admin-login-brand">
+        <div className="admin-login-mark">DF</div>
+        <div><small>DF STORE PY</small><strong>Centro de control</strong></div>
+      </div>
 
-      {mode === "login" ? (
-        <>
-          <p className="muted">Ingresá con tu correo y contraseña de administrador.</p>
+      <div className="admin-login-card">
+        <div className="admin-login-heading">
+          <span className="admin-login-eyebrow">ADMINISTRACIÓN</span>
+          <h1>{mode === "login" ? "Bienvenida de nuevo" : "Recuperar acceso"}</h1>
+          <p>{mode === "login"
+            ? "Ingresá a tu centro de control para gestionar tu tienda."
+            : "Te enviaremos un enlace seguro para crear una nueva contraseña."}</p>
+        </div>
+
+        {mode === "login" ? (
           <form onSubmit={signIn} className="product-form admin-login-form">
             <label>
               Correo administrador
@@ -91,10 +96,7 @@ export default function AdminLogin() {
             <button type="button" className="link-button" onClick={() => { setMode("forgot"); setMsg(""); }}>¿Olvidaste tu contraseña?</button>
             {msg && <p role="status">{msg}</p>}
           </form>
-        </>
-      ) : (
-        <>
-          <p className="muted">Escribí tu correo y te enviaremos un enlace seguro para crear una nueva contraseña.</p>
+        ) : (
           <form onSubmit={sendRecovery} className="product-form admin-login-form">
             <label>
               Correo administrador
@@ -104,8 +106,10 @@ export default function AdminLogin() {
             <button type="button" className="link-button" onClick={() => { setMode("login"); setMsg(""); }}>Volver al inicio de sesión</button>
             {msg && <p role="status">{msg}</p>}
           </form>
-        </>
-      )}
+        )}
+
+        <div className="admin-login-security"><span>✓</span> Acceso protegido · DF Store PY</div>
+      </div>
     </section>
   );
 }
