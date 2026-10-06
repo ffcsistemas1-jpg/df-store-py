@@ -1,3 +1,7 @@
+import type { Metadata } from "next";
+import { SITE_URL } from "../lib/seo";
+
+export const metadata: Metadata = { alternates: { canonical: SITE_URL + "/" }, openGraph: { url: SITE_URL + "/" } };
 import Link from "next/link";
 import { ProductCard, TrustBadges } from "./ui";
 import { getProducts, getPromotions } from "../lib/products";
