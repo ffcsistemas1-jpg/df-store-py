@@ -8,24 +8,24 @@ import { refreshAppBadge } from "../../lib/push";
 type NavItem = { label: string; href: string; icon: string };
 
 const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
-  { label: "Operación", items: [
-    { label: "Panel principal", href: "/admin", icon: "grid" },
+  { label: "NEGOCIO", items: [
+    { label: "Resumen", href: "/admin", icon: "grid" },
     { label: "Pedidos", href: "/admin/pedidos", icon: "bag" },
-    { label: "Productos e inventario", href: "/admin/productos", icon: "box" },
+    { label: "Productos", href: "/admin/productos", icon: "box" },
     { label: "Promociones", href: "/admin/promociones", icon: "tag" },
   ]},
-  { label: "Clientes y ventas", items: [
+  { label: "CLIENTES Y MARKETING", items: [
     { label: "Clientes", href: "/admin/clientes", icon: "users" },
     { label: "Embudo de ventas", href: "/admin/embudo", icon: "chart" },
     { label: "Meta Ads", href: "/admin/meta-ads", icon: "target" },
     { label: "Finanzas", href: "/admin/reportes", icon: "finance" },
   ]},
-  { label: "Logística", items: [
+  { label: "OPERACIÓN", items: [
     { label: "Delivery y zonas", href: "/admin/delivery", icon: "pin" },
     { label: "Transportadoras", href: "/admin/transportadoras", icon: "truck" },
     { label: "Métodos de pago", href: "/admin/pagos", icon: "card" },
   ]},
-  { label: "Sistema", items: [
+  { label: "SISTEMA", items: [
     { label: "Notificaciones", href: "/admin/notificaciones", icon: "bell" },
     { label: "Configuración", href: "/admin/configuracion", icon: "settings" },
   ]},
@@ -71,60 +71,64 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
   const isActive = (href: string) => href === "/admin" ? pathname === "/admin" : pathname?.startsWith(href);
 
   return (
-    <>
-      <div className="admin-shell">
-        <div className="admin-mobile-actions">
-          <button type="button" className="admin-mobile-toggle" onClick={() => setOpen(v => !v)} aria-label="Abrir menú del administrador">
-            <span className="admin-mobile-brand"><span className="admin-mobile-mark">DF</span><span>STORE PY</span></span><span className="admin-menu-label">Menú</span>
-          </button>
-        </div>
-
-        <aside className={`admin-sidebar ${open ? "open" : ""}`}>
-          <div className="admin-sidebar-title">
-            <div className="admin-brand-mark">DF</div>
-            <div className="admin-brand-copy"><small>DF STORE PY</small><strong>Centro de control</strong></div>
-          </div>
-
-          <div className="admin-status-card">
-            <span className="admin-status-dot" />
-            <div><b>Producción</b><small>Tienda operativa</small></div>
-          </div>
-
-          <nav className="admin-nav" aria-label="Administración">
-            {NAV_GROUPS.map(group => (
-              <div className="admin-nav-group" key={group.label}>
-                <div className="admin-sidebar-caption">{group.label}</div>
-                {group.items.map(item => (
-                  <Link key={item.href} href={item.href} className={isActive(item.href) ? "active" : ""} onClick={() => setOpen(false)}>
-                    <span className="admin-nav-icon"><AdminIcon name={item.icon} /></span><span>{item.label}</span>
-                  </Link>
-                ))}
-              </div>
-            ))}
-          </nav>
-
-          <Link href="/" className="admin-back-store" onClick={() => setOpen(false)}>
-            <span className="admin-back-store-icon">↗</span><span>Ver tienda</span><small>Visitar sitio</small>
-          </Link>
-        </aside>
-
-        {open && <button className="admin-menu-backdrop" aria-label="Cerrar menú" onClick={() => setOpen(false)} />}
-        <div className="admin-content">
-          <div className="admin-topbar">
-            <div><span>ADMINISTRACIÓN</span><b>DF Store PY</b></div>
-            <div className="admin-topbar-actions">
-              <span className="admin-live-pill"><i /> Sistema activo</span>
-              <Link href="/" className="admin-store-link">Ver tienda ↗</Link>
-            </div>
-          </div>
-          {children}
-        </div>
-
-        <nav className="admin-mobile-bottom-nav" aria-label="Navegación rápida del administrador">
-          {MOBILE_NAV.map(item => <Link key={item.href} href={item.href} className={isActive(item.href) ? "active" : ""}><AdminIcon name={item.icon} /><small>{item.label}</small></Link>)}
-          <button type="button" onClick={() => setOpen(true)}><span className="mobile-more-icon">+</span><small>Más</small></button>
-        </nav>
+    <div className="admin-shell">
+      <div className="admin-mobile-actions">
+        <button type="button" className="admin-mobile-toggle" onClick={() => setOpen(v => !v)} aria-label="Abrir menú del administrador">
+          <span className="admin-mobile-brand"><span className="admin-mobile-mark">DF</span><span>DF Store PY</span></span>
+          <span className="admin-menu-label">Menú</span>
+        </button>
       </div>
-    </>
+
+      <aside className={`admin-sidebar ${open ? "open" : ""}`}>
+        <div className="admin-sidebar-title">
+          <div className="admin-brand-mark">DF</div>
+          <div className="admin-brand-copy"><small>DF STORE PY</small><strong>Administración</strong></div>
+        </div>
+
+        <div className="admin-status-card">
+          <span className="admin-status-dot" />
+          <div><b>En línea</b><small>Tienda operativa</small></div>
+        </div>
+
+        <nav className="admin-nav" aria-label="Administración">
+          {NAV_GROUPS.map(group => (
+            <div className="admin-nav-group" key={group.label}>
+              <div className="admin-sidebar-caption">{group.label}</div>
+              {group.items.map(item => (
+                <Link key={item.href} href={item.href} className={isActive(item.href) ? "active" : ""} onClick={() => setOpen(false)}>
+                  <span className="admin-nav-icon"><AdminIcon name={item.icon} /></span><span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <Link href="/" className="admin-back-store" onClick={() => setOpen(false)}>
+          <span className="admin-back-store-icon">↗</span><span>Ir a la tienda</span>
+        </Link>
+      </aside>
+
+      {open && <button className="admin-menu-backdrop" aria-label="Cerrar menú" onClick={() => setOpen(false)} />}
+
+      <div className="admin-content">
+        <header className="admin-topbar">
+          <div className="admin-topbar-left">
+            <span className="admin-topbar-kicker">DF STORE PY</span>
+            <span className="admin-topbar-separator">/</span>
+            <strong>Administración</strong>
+          </div>
+          <div className="admin-topbar-actions">
+            <span className="admin-live-pill"><i /> Sistema activo</span>
+            <Link href="/" className="admin-store-link">Ver tienda ↗</Link>
+          </div>
+        </header>
+        {children}
+      </div>
+
+      <nav className="admin-mobile-bottom-nav" aria-label="Navegación rápida del administrador">
+        {MOBILE_NAV.map(item => <Link key={item.href} href={item.href} className={isActive(item.href) ? "active" : ""}><AdminIcon name={item.icon} /><small>{item.label}</small></Link>)}
+        <button type="button" onClick={() => setOpen(true)}><span className="mobile-more-icon">+</span><small>Más</small></button>
+      </nav>
+    </div>
   );
 }
