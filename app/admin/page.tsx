@@ -14,9 +14,9 @@ export default async function Admin(){
   if(!isAdmin)return <section><small>DF STORE PY</small><h1>Acceso denegado</h1><p>Tu cuenta ({user.email}) no tiene permisos de administrador.</p></section>;
   const [{count:pc},{data:orders},{data:products},{data:pending}]=await Promise.all([
     s.from("products").select("id",{count:"exact",head:true}).eq("active",true),
-    s.from("orders").select("total").neq("status","cancelado"),
+    s.from("orders").select("total").eq("is_test",false).neq("status","cancelado"),
     s.from("products").select("stock").eq("active",true),
-    s.from("orders").select("id").neq("payment_method","Pago al recibir").eq("payment_verified",false).neq("status","cancelado")
+    s.from("orders").select("id").eq("is_test",false).neq("payment_method","Pago al recibir").eq("payment_verified",false).neq("status","cancelado")
   ]);
   const sales=(orders||[]).reduce((n:any,o:any)=>n+Number(o.total||0),0);
   const low=(products||[]).filter((p:any)=>Number(p.stock)<=5).length;
