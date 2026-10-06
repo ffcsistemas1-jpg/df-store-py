@@ -354,3 +354,91 @@ body:has(.admin-shell){background:#f5f3f2!important}
   .admin-mobile-bottom-nav svg{width:18px;height:18px}
   .mobile-more-icon{font-size:21px!important;line-height:18px!important}
 }
+
+/* ===== FINAL BUSINESS UI — LIGHT ENTERPRISE ===== */
+body:has(.admin-shell){background:#f7f5f4!important;color:#21191d!important}
+.admin-shell{
+  max-width:1560px!important;
+  grid-template-columns:250px minmax(0,1fr)!important;
+  gap:28px!important;
+  padding:22px 28px 70px!important;
+}
+.admin-sidebar{
+  width:250px!important;min-width:250px!important;top:22px!important;
+  padding:16px 12px 12px!important;border-radius:20px!important;
+  background:#fff!important;border:1px solid #e7e0df!important;
+  box-shadow:0 12px 34px rgba(45,31,36,.07)!important;
+}
+.admin-sidebar-title{padding:3px 7px 17px!important;border-bottom:1px solid #eee8e7!important}
+.admin-brand-mark{
+  width:42px!important;height:42px!important;border-radius:12px!important;
+  background:#8b214b!important;box-shadow:0 7px 16px rgba(139,33,75,.16)!important;
+}
+.admin-brand-copy small{color:#8b214b!important}
+.admin-brand-copy strong{color:#2a2024!important}
+.admin-status-card{
+  margin:14px 3px 15px!important;padding:10px 11px!important;
+  border:1px solid #e8e1e0!important;border-radius:12px!important;background:#faf8f7!important;
+}
+.admin-status-dot{background:#2e9b5f!important;box-shadow:0 0 0 4px rgba(46,155,95,.08)!important}
+.admin-status-card b{color:#33282d!important}
+.admin-status-card small{color:#91858a!important}
+.admin-sidebar-caption{color:#a09599!important;padding:9px 9px 5px!important}
+.admin-nav-group+.admin-nav-group{margin-top:6px}
+.admin-nav a{color:#62565c!important;min-height:40px!important;border-radius:10px!important}
+.admin-nav a:hover{background:#fbf4f7!important;color:#8b214b!important}
+.admin-nav a.active{
+  background:#f8e9ef!important;color:#7d183f!important;
+  box-shadow:none!important;font-weight:850!important;
+}
+.admin-nav-icon{background:#f5f2f1!important;color:#81757a!important;width:28px!important;height:28px!important}
+.admin-nav a.active .admin-nav-icon{background:#8b214b!important;color:#fff!important}
+.admin-back-store{border-top:1px solid #eee8e7!important;color:#7d183f!important}
+.admin-back-store-icon{background:#f8e9ef!important;color:#8b214b!important}
+.admin-topbar{border-bottom:1px solid #e8e2e0!important}
+.admin-live-pill{background:#f6fbf8!important}
+.admin-content .title h1{color:#21191d!important}
+.adminstats>div{background:#fff!important;border-color:#e6dfde!important;box-shadow:0 7px 22px rgba(45,31,36,.045)!important}
+.adminstats>div:after{background:#f7e9ee!important}
+.admin-content .panel{background:#fff!important;border-color:#e6dfde!important}
+.admin-content .adminlinks a{background:#fff!important;border-color:#e6dfde!important}
+.admin-content .adminlinks a:hover{border-color:#d7b7c3!important}
+
+/* Mobile must behave like a real business app: sidebar is an overlay, never part of the page flow. */
+@media(max-width:900px){
+  .admin-shell{display:block!important;padding:10px 14px 88px!important}
+  .admin-mobile-actions{display:flex!important;position:sticky!important;top:7px!important;z-index:80!important}
+  .admin-sidebar{
+    display:none!important;
+    position:fixed!important;
+    z-index:100!important;
+    left:10px!important;top:10px!important;bottom:10px!important;
+    width:min(320px,calc(100vw - 20px))!important;
+    min-width:0!important;
+    max-height:calc(100vh - 20px)!important;
+    overflow:auto!important;
+    box-shadow:0 24px 70px rgba(31,20,25,.24)!important;
+  }
+  .admin-sidebar.open{display:block!important}
+  .admin-menu-backdrop{
+    position:fixed!important;inset:0!important;z-index:90!important;
+    border:0!important;background:rgba(30,22,25,.28)!important;
+    backdrop-filter:blur(2px)!important;
+  }
+  .admin-mobile-toggle{
+    background:#fff!important;border:1px solid #e6dfde!important;
+    color:#30252a!important;box-shadow:0 8px 22px rgba(45,31,36,.07)!important;
+  }
+  .admin-mobile-mark{background:#8b214b!important}
+  .admin-mobile-brand{color:#6f5f66!important}
+  .admin-menu-label{color:#8b214b!important}
+  .admin-topbar{display:none!important}
+  .admin-mobile-bottom-nav{
+    left:10px!important;right:10px!important;bottom:10px!important;
+    background:rgba(255,255,255,.98)!important;border:1px solid #e3dcdc!important;
+    box-shadow:0 14px 38px rgba(45,31,36,.16)!important;
+  }
+  .admin-mobile-bottom-nav a,.admin-mobile-bottom-nav button{color:#786b71!important}
+  .admin-mobile-bottom-nav a.active{color:#8b214b!important;background:#fcf2f6!important}
+  .admin-mobile-bottom-nav svg{width:18px;height:18px}
+}
