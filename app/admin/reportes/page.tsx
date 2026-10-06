@@ -16,7 +16,8 @@ type Order = {
   delivery_fee: number | null;
   payment_method: string | null;
   payment_verified: boolean | null;
-  created_at: string;\n  is_test: boolean;
+  created_at: string;
+  is_test: boolean;
 };
 type Item = { product_name: string; quantity: number | null; subtotal: number | null; order_id: string };
 type Product = { id: string; name: string; stock: number | null; active: boolean | null; price: number | null; cost: number | null };
