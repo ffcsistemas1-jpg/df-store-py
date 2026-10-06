@@ -1,3 +1,4 @@
+import { SITE_URL, jsonLd } from "../../../lib/seo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProduct } from "../../../lib/products";
@@ -11,12 +12,24 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
  const title=`${p.name} — DF Store PY`;
  const description=p.description||`${p.name} disponible en DF Store PY. Todo lo que buscan en un solo lugar.`;
  const images=p.image_url?[{url:p.image_url}]:undefined;
- return {title,description,openGraph:{title,description,images,type:"website"},twitter:{card:"summary_large_image",title,description,images:p.image_url?[p.image_url]:undefined}};
+ return {title,description,alternates:{canonical:`${SITE_URL}/catalogo/${p.id}`},openGraph:{title,description,images,type:"website",url:`${SITE_URL}/catalogo/${p.id}`},twitter:{card:"summary_large_image",title,description,images:p.image_url?[p.image_url]:undefined}};
 }
 
 export default async function Product({params}:{params:Promise<{id:string}>}){
  const p=await getProduct((await params).id); if(!p)notFound();
+ const url = SITE_URL + "/catalogo/" + p.id;
+ const structuredData = {
+  "@context": "https://schema.org", "@type": "Product", name: p.name,
+  description: p.description || (p.name + " disponible en DF Store PY."),
+  ...(p.image_url ? { image: [p.image_url] } : {}), url,
+  ...(Number.isFinite(Number(p.price)) && Number(p.price) > 0 ? { offers: {
+   "@type": "Offer", url, priceCurrency: "PYG", price: Number(p.price),
+   ...(typeof p.stock === "number" ? { availability: p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock" } : {}),
+   seller: { "@type": "Organization", name: "DF Store PY" }
+  }} : {})
+ };
  return <section className="product-detail-page">
+  {!p.id.startsWith("demo-") && <script type="application/ld+json" dangerouslySetInnerHTML={{__html: jsonLd(structuredData)}}/>}
   <ProductViewTracker id={p.id} name={p.name} price={p.price}/>
   <Link className="back" href="/catalogo">← Volver al catálogo</Link>
   <div className="product-detail-layout">
