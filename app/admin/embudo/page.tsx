@@ -2,6 +2,7 @@
 import Link from "next/link";
 import {useEffect,useState} from "react";
 import {normalizePyWhatsapp} from "../../../lib/phone-py";
+import {createClient} from "../../../lib/supabase/browser";
 
 const CONTACT_WHATSAPP="595974719210";
 const money=(n:number)=>`₲ ${Number(n||0).toLocaleString("es-PY")}`;
