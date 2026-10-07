@@ -60,6 +60,33 @@ export async function PATCH(req:Request){
   return NextResponse.json({ok:true,whatsapp:clean,abandoned_checkout_message:message});
 }
 
+export async function POST(req:Request){
+  const {s,response}=await adminClient();
+  if(!s)return response!;
+  let body:any;
+  try{body=await req.json()}catch{return NextResponse.json({error:"JSON inválido"},{status:400})}
+  const session=String(body?.session||"").trim();
+  const paymentMethod=String(body?.payment_method||"Pago al recibir").trim();
+  if(!session)return NextResponse.json({error:"Falta session"},{status:400});
+  if(!["Pago al recibir","Transferencia","Giro Tigo"].includes(paymentMethod)){
+    return NextResponse.json({error:"Método de pago inválido"},{status:400});
+  }
+  const {data,error}=await s.rpc("register_manual_sale_from_checkout",{
+    p_session:session,
+    p_payment_method:paymentMethod
+  });
+  if(error){
+    return NextResponse.json({error:error.message},{status:400});
+  }
+  return NextResponse.json({
+    ok:true,
+    orderId:data?.id||null,
+    total:Number(data?.total||0),
+    saleOrigin:"manual_abandoned_checkout",
+    meta:"not_sent"
+  });
+}
+
 export async function DELETE(req:Request){
   const {s,response}=await adminClient();
   if(!s)return response!;
