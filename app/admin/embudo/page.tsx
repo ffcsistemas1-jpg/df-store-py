@@ -2,7 +2,6 @@
 import Link from "next/link";
 import {useEffect,useState} from "react";
 import {normalizePyWhatsapp} from "../../../lib/phone-py";
-import {createClient} from "../../../lib/supabase/browser";
 
 const CONTACT_WHATSAPP="595974719210";
 const money=(n:number)=>`₲ ${Number(n||0).toLocaleString("es-PY")}`;
@@ -22,9 +21,9 @@ export default function Embudo(){
   if(!window.confirm(`¿Registrar a ${draft.full_name||"este cliente"} como VENTA MANUAL?\\n\\nSe creará una venta real, descontará el stock guardado en este checkout y aparecerá en Pedidos/Finanzas. No enviará un Purchase a Meta porque la venta se cerró manualmente fuera del checkout.`))return;
   setSellingSession(session);setMsg("");
   try{
-   const s=createClient();
-   const {data,error}=await s.rpc("register_manual_sale_from_checkout",{p_session:session,p_payment_method:salePayment});
-   if(error)throw error;
+   const r=await fetch("/api/admin/embudo",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"include",body:JSON.stringify({session,payment_method:salePayments[session]||draft.payment_method||"Pago al recibir"})});
+   const data=await r.json().catch(()=>({}));
+   if(!r.ok)throw new Error(data.error||`HTTP ${r.status}`);
    setDrafts(v=>v.filter(d=>d.session!==session));
    setMsg(`✅ Venta registrada correctamente por ${money(Number(data?.total||0))}. Aparecerá en Pedidos y Finanzas. Meta no recibió un Purchase automático.`);
   }catch(e:any){setMsg("❌ No se pudo registrar la venta: "+(e?.message||"error desconocido"));}finally{setSellingSession(null);}
