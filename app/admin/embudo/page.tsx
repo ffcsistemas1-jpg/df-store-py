@@ -4,6 +4,7 @@ import {useEffect,useState} from "react";
 import {normalizePyWhatsapp} from "../../../lib/phone-py";
 
 const CONTACT_WHATSAPP="595974719210";
+const money=(n:number)=>`₲ ${Number(n||0).toLocaleString("es-PY")}`;
 const DEFAULT_MESSAGE="¡Hola, {nombre}! 😊 ¿Cómo estás?\nNotamos que casi terminaste tu compra en DF Store PY. 🛍️\nSi tuviste algún inconveniente o necesitás ayuda para finalizar el pedido, escribinos. ¡Estamos para ayudarte! 💕";
 type Stage={label:string;value:number};
 type Draft={session:string;full_name:string|null;whatsapp:string|null;email:string|null;department:string|null;city:string|null;neighborhood:string|null;address:string|null;delivery_type:string|null;payment_method:string|null;updated_at:string};
