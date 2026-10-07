@@ -574,3 +574,54 @@ main:has(.admin-products) .product-toolbar{padding:15px!important;margin-bottom:
 /* Remove decorative, game-like treatment from admin-only surfaces. */
 body:has(.admin-shell) .emoji,
 body:has(.admin-shell) .admin-decoration{display:none}
+
+/* ---------- order work queue / history ---------- */
+.order-tabs{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  margin:0 0 14px!important;
+  padding:4px!important;
+  width:max-content!important;
+  max-width:100%!important;
+  background:#f0eeec!important;
+  border:1px solid var(--admin-border)!important;
+  border-radius:10px!important;
+}
+.order-tab{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:36px!important;
+  padding:7px 13px!important;
+  border:0!important;
+  border-radius:7px!important;
+  background:transparent!important;
+  color:#6b6468!important;
+  font:700 11px Arial,Helvetica,sans-serif!important;
+  text-decoration:none!important;
+  cursor:pointer!important;
+}
+.order-tab.active{
+  background:#fff!important;
+  color:var(--admin-accent-strong)!important;
+  box-shadow:0 1px 4px rgba(35,28,31,.08)!important;
+}
+.order-info{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:16px!important;
+  margin-bottom:14px!important;
+  background:#fff!important;
+}
+.order-info div{display:flex!important;flex-direction:column!important;gap:3px!important}
+.order-info span{color:var(--admin-muted)!important;font-size:11px!important}
+.order-info a{color:var(--admin-accent-strong)!important;font-size:11px!important;font-weight:800!important;text-decoration:none!important}
+.order-card .order-actions label{min-width:0!important}
+@media(max-width:600px){
+  .order-tabs{width:100%!important}
+  .order-tab{flex:1!important}
+  .order-info{align-items:flex-start!important;flex-direction:column!important}
+  .order-info a{width:100%!important}
+}
