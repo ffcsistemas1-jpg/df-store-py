@@ -16,7 +16,12 @@ export async function subscribeToPush(): Promise<{ ok: boolean; reason?: string 
   if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
     return { ok: false, reason: "unsupported" };
   }
-  const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  let vapidKey = "";
+  try {
+    const response = await fetch("/api/push-config", { cache: "no-store" });
+    const data = await response.json().catch(() => null);
+    vapidKey = String(data?.publicKey || "").trim();
+  } catch {}
   if (!vapidKey) return { ok: false, reason: "vapid_not_configured" };
 
   const registration = await navigator.serviceWorker.ready;
