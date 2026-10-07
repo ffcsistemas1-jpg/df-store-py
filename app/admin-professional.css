@@ -625,3 +625,5 @@ body:has(.admin-shell) .admin-decoration{display:none}
   .order-info{align-items:flex-start!important;flex-direction:column!important}
   .order-info a{width:100%!important}
 }
+
+.manual-sale-control{display:flex!important;flex-direction:column!important;gap:5px!important;font-size:11px!important;font-weight:800!important;color:var(--admin-muted)!important}.manual-sale-control select{min-height:40px!important;border:1px solid var(--admin-border)!important;border-radius:9px!important;background:#fff!important;padding:0 10px!important;font:700 12px Arial,Helvetica,sans-serif!important;color:#2d292b!important}@media(max-width:600px){.manual-sale-control{width:100%!important}.manual-sale-control select{width:100%!important}}
