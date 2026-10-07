@@ -17,7 +17,7 @@ type Order = {
   payment_method: string | null;
   payment_verified: boolean | null;
   created_at: string;
-  is_test: boolean;
+  is_test: boolean; sale_origin: string | null;
 };
 type Item = { product_name: string; quantity: number | null; subtotal: number | null; order_id: string };
 type Product = { id: string; name: string; stock: number | null; active: boolean | null; price: number | null; cost: number | null };
@@ -51,7 +51,7 @@ export default function Reportes() {
     (async () => {
       const s = createClient();
       const [a, b, c] = await Promise.all([
-        s.from("orders").select("id,status,total,subtotal,delivery_fee,payment_method,payment_verified,created_at,is_test").eq("is_test", false).order("created_at", { ascending: false }),
+        s.from("orders").select("id,status,total,subtotal,delivery_fee,payment_method,payment_verified,created_at,is_test,sale_origin").eq("is_test", false).order("created_at", { ascending: false }),
         s.from("order_items").select("product_name,quantity,subtotal,order_id"),
         s.from("products").select("id,name,stock,active,price,cost"),
       ]);
@@ -107,6 +107,8 @@ export default function Reportes() {
   );
   const validOrders = filteredOrders.filter((o) => o.status !== "cancelado");
   const delivered = validOrders.filter((o) => o.status === "entregado");
+  const manualSales = validOrders.filter((o) => o.sale_origin === "manual_abandoned_checkout");
+  const manualSalesValue = manualSales.reduce((n, o) => n + Number(o.subtotal || 0), 0);
   const validIds = new Set(validOrders.map((o) => o.id));
   const filteredItems = items.filter((i) => validIds.has(i.order_id));
 
@@ -182,7 +184,7 @@ export default function Reportes() {
         <article><span>🛍️ VENTAS DE PRODUCTOS</span><strong>{money(sales)}</strong></article>
         <article><span>📦 COSTO DE MERCADERÍA</span><strong>{money(cost)}</strong></article>
         <article><span>↗ GANANCIA BRUTA</span><strong>{money(gross)}</strong><small>Margen bruto: {pct(grossMargin)}</small></article>
-        <article><span>📣 GASTO EN PUBLICIDAD</span><strong>{money(adSpend)}</strong><small>Ventas: {pct(adRatio)}</small></article>
+        <article><span>📣 GASTO EN PUBLICIDAD</span><strong>{money(adSpend)}</strong><small>Ventas: {pct(adRatio)}</small></article><article><span>💰 VENTAS MANUALES</span><strong>{money(manualSalesValue)}</strong><small>{manualSales.length} pedido(s) registrados desde embudo</small></article>
       </div>
 
       <div className="finance-net">
