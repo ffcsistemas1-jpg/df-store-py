@@ -14,6 +14,7 @@ type Media = {
 export default function ProductMediaGallery({name,media}:{name:string;media:Media[]}) {
   const items=useMemo(()=>[...media].sort((a,b)=>Number(b.is_primary)-Number(a.is_primary)+(a.sort_order||0)-(b.sort_order||0)),[media]);
   const [active,setActive]=useState(0);
+  const [zoomed,setZoomed]=useState(false);
   const trackRef=useRef<HTMLDivElement|null>(null);
   const videoRefs=useRef<Record<number,HTMLVideoElement|null>>({});
 
@@ -51,7 +52,7 @@ export default function ProductMediaGallery({name,media}:{name:string;media:Medi
   return <div data-product-gallery="true" style={{display:"block",position:"relative",width:"100%",maxWidth:"100%",minWidth:0,overflow:"hidden",boxSizing:"border-box"}}>
     <div ref={trackRef} data-product-gallery-track="true" aria-label={`Galería de ${name}`} style={{position:"relative",display:"flex",width:"100%",maxWidth:"100%",aspectRatio:"1 / 1",overflowX:"auto",overflowY:"hidden",overscrollBehaviorX:"contain",WebkitOverflowScrolling:"touch",scrollSnapType:"x mandatory",scrollbarWidth:"none",msOverflowStyle:"none",backgroundColor:"#f5efeb",border:"1px solid #eadfe0",borderRadius:18,boxSizing:"border-box",touchAction:"pan-x"}}>
       {items.map((item,index)=><div key={item.id||`${item.url}-${index}`} data-gallery-slide="true" data-index={index} style={{position:"relative",flex:"0 0 100%",width:"100%",height:"100%",minWidth:0,minHeight:0,overflow:"hidden",scrollSnapAlign:"center",scrollSnapStop:"always",background:"#f5efeb"}}>
-        {item.media_type==="image"?<img src={item.url} alt={`${name} - imagen ${index+1}`} draggable={false} loading={index===0?"eager":"lazy"} style={{display:"block",width:"100%",height:"100%",minWidth:0,minHeight:0,maxWidth:"none",maxHeight:"none",objectFit:"contain",objectPosition:"center center",margin:0,padding:0,border:0,userSelect:"none"}}/>:
+        {item.media_type==="image"?<button type="button" onClick={()=>setZoomed(true)} aria-label={`Ampliar imagen ${index+1}`} style={{display:"block",width:"100%",height:"100%",padding:0,margin:0,border:0,background:"transparent",cursor:"zoom-in"}}><img src={item.url} alt={`${name} - imagen ${index+1}`} draggable={false} loading={index===0?"eager":"lazy"} style={{display:"block",width:"100%",height:"100%",minWidth:0,minHeight:0,maxWidth:"none",maxHeight:"none",objectFit:"contain",objectPosition:"center center",margin:0,padding:0,border:0,userSelect:"none",pointerEvents:"none"}}/></button>:
         <video ref={node=>{videoRefs.current[index]=node}} src={item.url} controls playsInline muted autoPlay={index===active} preload="auto" loop style={{display:"block",width:"100%",height:"100%",minWidth:0,minHeight:0,maxWidth:"none",maxHeight:"none",objectFit:"contain",margin:0,padding:0,border:0,background:"#000"}}/>}
       </div>)}
     </div>
