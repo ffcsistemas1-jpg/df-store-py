@@ -26,7 +26,7 @@ export async function GET(){
     s.from("checkout_drafts").select("session"),
     s.from("orders").select("id",{count:"exact",head:true}).eq("is_test",false).neq("status","cancelado"),
     s.from("orders").select("id",{count:"exact",head:true}).eq("is_test",false).eq("status","entregado"),
-    s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").is("completed_at",null).order("updated_at",{ascending:false}).limit(50),
+    s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").is("completed_at",null).not("whatsapp","is",null).neq("whatsapp","").order("updated_at",{ascending:false}).limit(50),
     s.from("store_settings").select("whatsapp,abandoned_checkout_message").eq("id",1).maybeSingle()
   ]);
   const firstError=[visits,views,carts,checkouts,orders,delivered,abandoned,settings].find(r=>r.error);
