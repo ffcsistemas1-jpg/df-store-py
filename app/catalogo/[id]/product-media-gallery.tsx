@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 type Media = {
   id?: string;
@@ -14,7 +14,12 @@ type Media = {
 export default function ProductMediaGallery({name,media}:{name:string;media:Media[]}) {
   const items=useMemo(()=>[...media].sort((a,b)=>Number(b.is_primary)-Number(a.is_primary)+(a.sort_order||0)-(b.sort_order||0)),[media]);
   const [active,setActive]=useState(0);
-  const [zoomed,setZoomed]=useState(false);\n  const [zoomScale,setZoomScale]=useState(1);\n  const [zoomX,setZoomX]=useState(0);\n  const [zoomY,setZoomY]=useState(0);\n  const pointers=useRef(new Map<number,{x:number;y:number}>());\n  const pinchStart=useRef<{distance:number;scale:number}|null>(null);
+  const [zoomed,setZoomed]=useState(false);
+  const [zoomScale,setZoomScale]=useState(1);
+  const [zoomX,setZoomX]=useState(0);
+  const [zoomY,setZoomY]=useState(0);
+  const pointers=useRef(new Map<number,{x:number;y:number}>());
+  const pinchStart=useRef<{distance:number;scale:number}|null>(null);
   const trackRef=useRef<HTMLDivElement|null>(null);
   const videoRefs=useRef<Record<number,HTMLVideoElement|null>>({});
 
@@ -39,7 +44,13 @@ export default function ProductMediaGallery({name,media}:{name:string;media:Medi
     return()=>observer.disconnect();
   },[items]);
 
-  const openZoom=()=>{setZoomed(true);setZoomScale(1);setZoomX(0);setZoomY(0);};\n  const closeZoom=()=>{setZoomed(false);setZoomScale(1);setZoomX(0);setZoomY(0);pointers.current.clear();pinchStart.current=null;};\n  const onZoomPointerDown=(e:React.PointerEvent<HTMLImageElement>)=>{e.currentTarget.setPointerCapture(e.pointerId);pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.current.size===2){const p=[...pointers.current.values()];pinchStart.current={distance:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),scale:zoomScale};}};\n  const onZoomPointerMove=(e:React.PointerEvent<HTMLImageElement>)=>{if(!pointers.current.has(e.pointerId))return;pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.current.size===2){const p=[...pointers.current.values()];const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);const start=pinchStart.current;if(start)setZoomScale(Math.min(4,Math.max(1,start.scale*(d/start.distance))));}else if(zoomScale>1){setZoomX(x=>x+e.movementX);setZoomY(y=>y+e.movementY);}};\n  const onZoomPointerUp=(e:React.PointerEvent<HTMLImageElement>)=>{pointers.current.delete(e.pointerId);if(pointers.current.size<2)pinchStart.current=null;};\n\n  const goTo=(index:number)=>{
+  const openZoom=()=>{setZoomed(true);setZoomScale(1);setZoomX(0);setZoomY(0);};
+  const closeZoom=()=>{setZoomed(false);setZoomScale(1);setZoomX(0);setZoomY(0);pointers.current.clear();pinchStart.current=null;};
+  const onZoomPointerDown=(e:ReactPointerEvent<HTMLImageElement>)=>{e.currentTarget.setPointerCapture(e.pointerId);pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.current.size===2){const p=[...pointers.current.values()];pinchStart.current={distance:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),scale:zoomScale};}};
+  const onZoomPointerMove=(e:ReactPointerEvent<HTMLImageElement>)=>{if(!pointers.current.has(e.pointerId))return;pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.current.size===2){const p=[...pointers.current.values()];const d=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);const start=pinchStart.current;if(start)setZoomScale(Math.min(4,Math.max(1,start.scale*(d/start.distance))));}else if(zoomScale>1){setZoomX(x=>x+e.movementX);setZoomY(y=>y+e.movementY);}};
+  const onZoomPointerUp=(e:ReactPointerEvent<HTMLImageElement>)=>{pointers.current.delete(e.pointerId);if(pointers.current.size<2)pinchStart.current=null;};
+
+  const goTo=(index:number)=>{
     const track=trackRef.current;
     const slide=track?.querySelector<HTMLElement>(`[data-gallery-slide][data-index="${index}"]`);
     if(!track||!slide)return;
@@ -56,6 +67,7 @@ export default function ProductMediaGallery({name,media}:{name:string;media:Medi
         <video ref={node=>{videoRefs.current[index]=node}} src={item.url} controls playsInline muted autoPlay={index===active} preload="auto" loop style={{display:"block",width:"100%",height:"100%",minWidth:0,minHeight:0,maxWidth:"none",maxHeight:"none",objectFit:"contain",margin:0,padding:0,border:0,background:"#000"}}/>}
       </div>)}
     </div>
+    {zoomed&&items[active]?.media_type==="image"&&<div role="dialog" aria-modal="true" aria-label="Imagen ampliada" onClick={closeZoom} style={{position:"fixed",inset:0,zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,.92)",padding:12,boxSizing:"border-box",touchAction:"none"}}><button type="button" aria-label="Cerrar imagen ampliada" onClick={closeZoom} style={{position:"absolute",top:14,right:14,zIndex:10001,width:46,height:46,border:0,borderRadius:"50%",background:"#fff",color:"#222",fontSize:30,lineHeight:"46px",padding:0}}>×</button><div style={{width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden"}}><img src={items[active].url} alt={name+" - imagen ampliada"} onClick={e=>e.stopPropagation()} onPointerDown={onZoomPointerDown} onPointerMove={onZoomPointerMove} onPointerUp={onZoomPointerUp} onPointerCancel={onZoomPointerUp} draggable={false} style={{maxWidth:"100%",maxHeight:"100%",width:"auto",height:"auto",objectFit:"contain",transform:"translate("+zoomX+"px, "+zoomY+"px) scale("+zoomScale+")",transformOrigin:"center center",touchAction:"none",userSelect:"none",cursor:zoomScale>1?"grab":"zoom-in"}}/></div><div style={{position:"absolute",bottom:20,left:"50%",transform:"translateX(-50%)",padding:"8px 14px",borderRadius:999,background:"rgba(255,255,255,.9)",fontSize:13,fontWeight:700,color:"#333"}}>Pellizcá para ampliar · arrastrá para mover</div></div>}
     {items.length>1&&<div data-product-gallery-thumbs="true" style={{display:"flex",flexDirection:"row",flexWrap:"nowrap",alignItems:"center",gap:10,width:"100%",maxWidth:"100%",overflowX:"auto",overflowY:"hidden",padding:"12px 2px 4px",boxSizing:"border-box",position:"relative",zIndex:3,scrollbarWidth:"none"}}>
       {items.map((item,index)=><button key={item.id||`${item.url}-${index}`} type="button" onClick={()=>goTo(index)} aria-label={`Ir a ${item.media_type==="image"?"imagen":"video"} ${index+1}`} style={{flex:"0 0 64px",width:64,minWidth:64,height:64,minHeight:64,display:"block",padding:0,margin:0,overflow:"hidden",borderRadius:10,border:`2px solid ${index===active?"#98234d":"#eadfe0"}`,background:"#fff",boxSizing:"border-box",cursor:"pointer"}}>
         {item.media_type==="image"?<img src={item.url} alt="" loading="lazy" draggable={false} style={{display:"block",width:"100%",height:"100%",objectFit:"cover",margin:0,padding:0,border:0}}/>:
