@@ -77,24 +77,26 @@ export function CartProvider({children}:{children:React.ReactNode}) {
    if(!session || !items.length) return;
    try{
      const s=createClient();
-     Promise.all(items.map(item=>s.from("cart_items").upsert({session,product_id:item.id,name:item.name,price:item.price,image_url:item.image_url||null,stock:item.stock,quantity:item.quantity,updated_at:new Date().toISOString()},{onConflict:"session,product_id"}))).catch(()=>{});
+     Promise.all(items.filter(item=>!item.id.startsWith("demo-")).map(item=>s.rpc("upsert_cart_item",{p_session:session,p_product_id:item.id,p_quantity:item.quantity}))).then(results=>{
+       for(const result of results){if(result.error)console.error("No se pudo sincronizar un producto del carrito",result.error)}
+     }).catch(()=>{});
    }catch{}
  },[items,ready]);
 
  function persist(item:CartItem){
-   const session=sessionRef.current; if(!session) return;
+   const session=sessionRef.current; if(!session||item.id.startsWith("demo-")) return;
    const s=createClient();
-   s.from("cart_items").upsert({session,product_id:item.id,name:item.name,price:item.price,image_url:item.image_url||null,stock:item.stock,quantity:item.quantity,updated_at:new Date().toISOString()},{onConflict:"session,product_id"}).then(({error}:any)=>{if(error)console.error("No se pudo guardar el carrito en Supabase",error)});
+   s.rpc("upsert_cart_item",{p_session:session,p_product_id:item.id,p_quantity:item.quantity}).then(({error}:any)=>{if(error)console.error("No se pudo guardar el carrito en Supabase",error)});
  }
  function removeRemote(id:string){
-   const session=sessionRef.current; if(!session) return;
+   const session=sessionRef.current; if(!session||id.startsWith("demo-")) return;
    const s=createClient();
-   s.from("cart_items").delete().eq("session",session).eq("product_id",id).then(({error}:any)=>{if(error)console.error("No se pudo quitar el producto del carrito",error)});
+   s.rpc("remove_cart_item",{p_session:session,p_product_id:id}).then(({error}:any)=>{if(error)console.error("No se pudo quitar el producto del carrito",error)});
  }
  function clearRemote(){
    const session=sessionRef.current; if(!session) return;
    const s=createClient();
-   s.from("cart_items").delete().eq("session",session).then(({error}:any)=>{if(error)console.error("No se pudo vaciar el carrito",error)});
+   s.rpc("clear_cart_items",{p_session:session}).then(({error}:any)=>{if(error)console.error("No se pudo vaciar el carrito",error)});
  }
 
  const add=(p:any, quantity=1)=>{
