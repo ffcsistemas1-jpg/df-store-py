@@ -64,7 +64,7 @@ export default function Pedidos(){
      if(ctx&&typeof ctx.json==="function"){try{const x=await ctx.json();detail=x?.error||x?.detail||x?.status||detail}catch{}}
      throw new Error(detail);
     }
-    if(data?.status==="duplicate_or_invalid_purchase"){setMsg("⚠️ Pedido confirmado. Meta no aceptó otro Purchase para este evento (posible duplicado o evento inválido); revisá el registro de eventos.");return;}
+    if(data?.status==="duplicate_or_invalid_purchase"){setMsg("✓ Pedido confirmado. Meta ya procesó este evento o evitó un duplicado; no se envió una segunda compra.");return;}
     if(data?.status!=="sent"&&data?.status!=="already_sent")throw new Error(data?.error||data?.status||"Meta no confirmó el Purchase.");
     setMsg(data?.status==="already_sent"?"✓ Pedido confirmado. Purchase ya estaba registrado, no se duplicó.":"✓ Pedido confirmado y Purchase enviado a Meta.");
    }catch(e:any){
