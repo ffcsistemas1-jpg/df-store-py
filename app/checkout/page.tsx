@@ -289,19 +289,23 @@ export default function Checkout() {
       if (error) throw error;
       const result = data as OrderResult;
       setOrder(result);
-      const purchaseParams = { content_ids: items.map(i => i.id), content_type: "product", num_items: items.reduce((n, i) => n + i.quantity, 0), value: result.total, currency: "PYG" };
-      pixelTrack("Purchase", purchaseParams, purchaseEventId);
-      await sendCapiEvent({
-        event_name: "Purchase",
-        event_id: purchaseEventId,
-        order_id: result.id,
-        value: result.total,
-        currency: "PYG",
-        content_ids: purchaseParams.content_ids,
-        num_items: purchaseParams.num_items,
-        email: form.email.trim() || undefined,
-        phone: normalizePyWhatsapp(form.whatsapp),
-      });
+      // Interior orders require payment verification before they count as a Purchase.
+      // Local cash-on-delivery orders can be counted when the order is placed.
+      if (form.delivery_type !== "interior") {
+        const purchaseParams = { content_ids: items.map(i => i.id), content_type: "product", num_items: items.reduce((n, i) => n + i.quantity, 0), value: result.total, currency: "PYG" };
+        pixelTrack("Purchase", purchaseParams, purchaseEventId);
+        await sendCapiEvent({
+          event_name: "Purchase",
+          event_id: purchaseEventId,
+          order_id: result.id,
+          value: result.total,
+          currency: "PYG",
+          content_ids: purchaseParams.content_ids,
+          num_items: purchaseParams.num_items,
+          email: form.email.trim() || undefined,
+          phone: normalizePyWhatsapp(form.whatsapp),
+        });
+      }
       clear();
       try { await s.rpc("complete_checkout_draft", { p_session: sessionRef.current }); } catch {}
     } catch (e: any) {
