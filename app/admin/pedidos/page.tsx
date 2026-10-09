@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "../../../lib/supabase/browser";
 
 const money=(n:number)=>`₲ ${Number(n||0).toLocaleString("es-PY")}`;
-type Order={id:string;status:string;event_id?:string;is_test?:boolean;delivery_type:string;payment_method:string;subtotal:number;delivery_fee:number;total:number;created_at:string;invoice_requested?:boolean;customer?:{full_name:string;whatsapp:string;city:string;department:string}|null;shipping_company?:{name:string}|null};
+type Order={id:string;status:string;event_id?:string;is_test?:boolean;delivery_type:string;payment_method:string;payment_verified?:boolean;subtotal:number;delivery_fee:number;total:number;created_at:string;invoice_requested?:boolean;customer?:{full_name:string;whatsapp:string;city:string;department:string}|null;shipping_company?:{name:string}|null};
 const statuses=["nuevo","esperando_comprobante","pendiente","confirmado","preparando","enviado","entregado","cancelado","devuelto"];
 const activeStatuses=["nuevo","esperando_comprobante","pendiente","confirmado","preparando","enviado"];
 
@@ -17,7 +17,7 @@ export default function Pedidos(){
   setLoading(true);
   const s=createClient();
   const {data,error}=await s.from("orders")
-   .select("id,status,event_id,is_test,delivery_type,payment_method,subtotal,delivery_fee,total,created_at,invoice_requested,customers(full_name,whatsapp,city,department),shipping_companies(name)")
+   .select("id,status,event_id,is_test,delivery_type,payment_method,payment_verified,subtotal,delivery_fee,total,created_at,invoice_requested,customers(full_name,whatsapp,city,department),shipping_companies(name)")
    .eq("is_test",false)
    .in("status",activeStatuses)
    .order("created_at",{ascending:false});
