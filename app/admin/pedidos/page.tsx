@@ -5,8 +5,8 @@ import { createClient } from "../../../lib/supabase/browser";
 
 const money=(n:number)=>`₲ ${Number(n||0).toLocaleString("es-PY")}`;
 type Order={id:string;status:string;event_id?:string;is_test?:boolean;delivery_type:string;payment_method:string;subtotal:number;delivery_fee:number;total:number;created_at:string;invoice_requested?:boolean;customer?:{full_name:string;whatsapp:string;city:string;department:string}|null;shipping_company?:{name:string}|null};
-const statuses=["pendiente","confirmado","preparando","enviado","entregado","cancelado","devuelto"];
-const activeStatuses=["nuevo","pendiente","confirmado","preparando","enviado"];
+const statuses=["nuevo","esperando_comprobante","pendiente","confirmado","preparando","enviado","entregado","cancelado","devuelto"];
+const activeStatuses=["nuevo","esperando_comprobante","pendiente","confirmado","preparando","enviado"];
 
 export default function Pedidos(){
  const [orders,setOrders]=useState<Order[]>([]);
