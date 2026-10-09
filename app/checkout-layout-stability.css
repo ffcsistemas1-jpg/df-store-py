@@ -14,7 +14,6 @@
  body:has(.checkout-section) main{min-height:0!important;height:auto!important;padding-top:8px!important;padding-bottom:18px!important}
  body:has(.checkout-section) .checkout-section{min-height:0!important;height:auto!important;margin:12px 0 24px!important;padding:0 0 20px!important}
  body:has(.checkout-section) .checkout-shell{min-height:0!important;height:auto!important}
- body:has(.checkout-section) .checkout-order-sticky{position:relative!important;inset:auto!important;margin-top:16px!important;max-width:none!important;box-shadow:0 5px 18px rgba(33,23,26,.12)!important}
  .site-footer{padding:26px 18px 16px}
  .site-footer .footer-top{grid-template-columns:minmax(0,1fr);gap:22px}
  .site-footer .footer-col{gap:8px}
@@ -122,4 +121,23 @@ body:has(.checkout-section) main{min-height:0!important;height:auto!important;pa
  .checkout-section .checkout-order-sticky{position:sticky!important;bottom:8px!important;z-index:20!important;margin-top:12px!important;padding:12px 14px!important;border-radius:14px!important}
  .checkout-section .checkout-order-sticky b{font-size:12px!important}
  .checkout-section .checkout-order-sticky strong{font-size:18px!important}
+}
+
+/* Durante el checkout, priorizar la compra: el footer no debe desplazar
+   los datos del pedido ni aparecer inmediatamente después de CONTINUAR. */
+body:has(.checkout-section) footer.site-footer{display:none!important}
+body:has(.checkout-section) .checkout-section{padding-bottom:24px!important;margin-bottom:0!important}
+body:has(.checkout-section) .checkout-order-sticky{
+ position:sticky!important;bottom:10px!important;z-index:20!important;
+ display:flex!important;align-items:center!important;justify-content:space-between!important;
+ width:calc(100% - 8px)!important;max-width:520px!important;margin:16px auto 0!important;
+ background:#21171a!important;color:#fff!important;border-radius:15px!important;
+ box-shadow:0 8px 24px rgba(33,23,26,.20)!important;
+}
+body:has(.checkout-section) .checkout-order-sticky b,
+body:has(.checkout-section) .checkout-order-sticky strong{color:#fff!important}
+@media(max-width:700px){
+ body:has(.checkout-section) main{padding-bottom:12px!important}
+ body:has(.checkout-section) .checkout-section{padding-bottom:12px!important}
+ body:has(.checkout-section) .checkout-order-sticky{bottom:8px!important}
 }
