@@ -1,0 +1,25 @@
+/* DF Store PY — estabilidad visual del checkout móvil y pie de página. */
+.site-footer{display:block;width:100%;margin:0;padding:32px max(16px,calc((100vw - 1180px)/2)) 18px;background:#21171a;color:#fff;overflow-wrap:anywhere}
+.site-footer *{box-sizing:border-box}
+.site-footer .footer-top{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px;max-width:1180px;margin:0 auto}
+.site-footer .footer-col{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0;color:#f7eef1}
+.site-footer .footer-col>b{font-size:22px;color:#fff;line-height:1.25}
+.site-footer .footer-col>strong{font-size:14px;color:#fff}
+.site-footer .footer-col>span,.site-footer .footer-col>a{font-size:14px;line-height:1.5;color:#e3d9dd;letter-spacing:0;overflow-wrap:anywhere}
+.site-footer .footer-col>a:hover{color:#fff;text-decoration:underline}
+.site-footer .payment-methods{display:flex;flex-wrap:wrap;align-items:center;gap:7px;width:100%;margin-top:2px}
+.site-footer .payment-chip{display:inline-flex;align-items:center;justify-content:center;max-width:100%;min-height:30px;padding:6px 10px;border:1px solid rgba(255,255,255,.22);border-radius:999px;background:rgba(255,255,255,.09);color:#fff;font:600 12px/1.35 Arial,Helvetica,sans-serif;letter-spacing:0;white-space:normal;overflow-wrap:anywhere}
+.site-footer .footer-bottom{max-width:1180px;margin:24px auto 0;padding-top:16px;border-top:1px solid rgba(255,255,255,.16);color:#d9cfd3;font-size:12px;line-height:1.5}
+@media(max-width:700px){
+ body:has(.checkout-section) main{min-height:0!important;height:auto!important;padding-top:8px!important;padding-bottom:18px!important}
+ body:has(.checkout-section) .checkout-section{min-height:0!important;height:auto!important;margin:12px 0 24px!important;padding:0 0 20px!important}
+ body:has(.checkout-section) .checkout-shell{min-height:0!important;height:auto!important}
+ body:has(.checkout-section) .checkout-order-sticky{position:relative!important;inset:auto!important;margin-top:16px!important;max-width:none!important;box-shadow:0 5px 18px rgba(33,23,26,.12)!important}
+ .site-footer{padding:26px 18px 16px}
+ .site-footer .footer-top{grid-template-columns:minmax(0,1fr);gap:22px}
+ .site-footer .footer-col{gap:8px}
+ .site-footer .footer-col>b{font-size:20px}
+ .site-footer .payment-methods{gap:7px}
+ .site-footer .payment-chip{font-size:12px;min-height:30px}
+ .site-footer .footer-bottom{margin-top:20px;padding-top:14px}
+}
