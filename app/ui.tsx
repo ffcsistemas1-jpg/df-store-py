@@ -2,7 +2,7 @@
 import Link from "next/link";
 import Script from "next/script";
 import { useRouter, usePathname } from "next/navigation";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "../lib/supabase/client";
 import { getCartSession } from "../lib/cart-session";
 import { trackVisit } from "../lib/analytics";
@@ -88,11 +88,11 @@ export function CartProvider({children}:{children:React.ReactNode}) {
    const s=createClient();
    s.rpc("upsert_cart_item",{p_session:session,p_product_id:item.id,p_quantity:item.quantity}).then(({error}:any)=>{if(error)console.error("No se pudo guardar el carrito en Supabase",error)});
  }
- function removeRemote(id:string){
+ const removeRemote=useCallback((id:string)=>{
    const session=sessionRef.current; if(!session||id.startsWith("demo-")) return;
    const s=createClient();
    s.rpc("remove_cart_item",{p_session:session,p_product_id:id}).then(({error}:any)=>{if(error)console.error("No se pudo quitar el producto del carrito",error)});
- }
+ },[]);
  function clearRemote(){
    const session=sessionRef.current; if(!session) return;
    const s=createClient();
@@ -125,15 +125,16 @@ export function CartProvider({children}:{children:React.ReactNode}) {
    }));
  };
  const clear=()=>{setItems([]); clearRemote();};
- const syncStock=(stocks:Record<string,number>)=>{
+ const syncStock=useCallback((stocks:Record<string,number>)=>{
    setItems(prev=>prev.flatMap(x=>{
      const stock=Math.max(0,Number(stocks[x.id]));
      if(!Number.isFinite(stock)||stock<=0){removeRemote(x.id);return [];}
+     if(x.stock===stock&&x.quantity<=stock)return [x];
      const updated={...x,stock,quantity:Math.min(x.quantity,stock)};
      return [updated];
    }));
- };
- const value=useMemo(()=>({items,add,remove,update,clear,syncStock,count:items.reduce((n,x)=>n+x.quantity,0),subtotal:items.reduce((n,x)=>n+x.price*x.quantity,0),ready}),[items,ready]);
+ },[removeRemote]);
+ const value=useMemo(()=>({items,add,remove,update,clear,syncStock,count:items.reduce((n,x)=>n+x.quantity,0),subtotal:items.reduce((n,x)=>n+x.price*x.quantity,0),ready}),[items,ready,syncStock]);
  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 export function useCart(){return useContext(CartContext)}
