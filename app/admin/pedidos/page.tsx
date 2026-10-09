@@ -54,7 +54,7 @@ export default function Pedidos(){
    setOrders(x=>x.filter(o=>o.id!==id));
   }
 
-  if(value==="confirmado"&&!wasConfirmed){
+  if(value==="confirmado"&&!wasConfirmed&&(current.delivery_type!=="interior"||current.payment_verified)){
    try{
     if(!current.event_id)throw new Error("El pedido no tiene event_id.");
     const {data,error}=await s.functions.invoke("meta-api",{body:{action:"capi",event_name:"Purchase",event_id:current.event_id,order_id:id}});
@@ -64,12 +64,14 @@ export default function Pedidos(){
      if(ctx&&typeof ctx.json==="function"){try{const x=await ctx.json();detail=x?.error||x?.detail||x?.status||detail}catch{}}
      throw new Error(detail);
     }
-    if(data?.status==="duplicate_or_invalid_purchase")throw new Error(`Purchase rechazado o duplicado: ${data?.event_id||current.event_id}`);
+    if(data?.status==="duplicate_or_invalid_purchase"){setMsg("⚠️ Pedido confirmado. Meta no aceptó otro Purchase para este evento (posible duplicado o evento inválido); revisá el registro de eventos.");return;}
     if(data?.status!=="sent"&&data?.status!=="already_sent")throw new Error(data?.error||data?.status||"Meta no confirmó el Purchase.");
     setMsg(data?.status==="already_sent"?"✓ Pedido confirmado. Purchase ya estaba registrado, no se duplicó.":"✓ Pedido confirmado y Purchase enviado a Meta.");
    }catch(e:any){
     setMsg("⚠️ Pedido confirmado, pero no se pudo enviar Purchase a Meta: "+(e?.message||"error desconocido"));
    }
+  }else if(value==="confirmado"&&!wasConfirmed&&current.delivery_type==="interior"&&!current.payment_verified){
+   setMsg("✓ Pedido confirmado. El envío al interior no se contará como compra hasta verificar el pago.");
   }else if(["entregado","cancelado","devuelto"].includes(value)){
    setMsg(`✓ Pedido ${value} y movido al Historial. Sus datos siguen conservados para Ventas/Finanzas y Meta.`);
   }else{
