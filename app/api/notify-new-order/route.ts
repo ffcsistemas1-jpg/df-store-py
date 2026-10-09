@@ -51,6 +51,9 @@ export async function POST(req: NextRequest) {
     body = {};
   }
   const order = body?.record || body?.order || null;
+  if (body?.healthcheck === true) {
+    return NextResponse.json({ ok: true, configured: true });
+  }
 
   const [{ data: subs, error: subsError }, { count: pendingCount, error: countError }] =
     await Promise.all([
