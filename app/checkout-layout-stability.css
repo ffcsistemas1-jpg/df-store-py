@@ -23,3 +23,70 @@
  .site-footer .payment-chip{font-size:12px;min-height:30px}
  .site-footer .footer-bottom{margin-top:20px;padding-top:14px}
 }
+
+/* Referencia aprobada: misma tarjeta, tipografía y jerarquía en cada paso. */
+.checkout-section .checkout-shell{width:100%;max-width:980px;margin:0 auto}
+.checkout-section .checkout-head,
+.checkout-section .panel.checkout-panel{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  background:#fff!important;
+  color:#21171a!important;
+  border:1px solid #e7dfe0!important;
+  border-radius:22px!important;
+  box-shadow:0 8px 24px rgba(33,23,26,.045)!important;
+}
+.checkout-section .panel.checkout-panel{
+  padding:26px!important;
+  margin:0 0 18px!important;
+  overflow:visible!important;
+}
+.checkout-section .panel.checkout-panel h2,
+.checkout-section .panel.checkout-panel h3,
+.checkout-section .panel.checkout-panel label{
+  color:#21171a;
+}
+.checkout-section .panel.checkout-panel p,
+.checkout-section .panel.checkout-panel .muted{
+  color:#71686a;
+  line-height:1.5;
+}
+.checkout-section .panel.checkout-panel input,
+.checkout-section .panel.checkout-panel select,
+.checkout-section .panel.checkout-panel textarea{
+  color:#21171a!important;
+  background:#fff!important;
+  border:1px solid #d8cdcf!important;
+  border-radius:12px!important;
+  min-height:48px;
+}
+.checkout-section .panel.checkout-panel button,
+.checkout-section .checkout-continue,
+.checkout-section .step-actions .btn{
+  min-height:48px;
+  font-weight:850;
+}
+.checkout-section .checkout-total.grand{
+  border:2px solid #98234d!important;
+  background:#f8edf2!important;
+  color:#98234d!important;
+  border-radius:15px!important;
+}
+.checkout-section .checkout-total.grand *{color:#98234d!important}
+.checkout-section .checkout-error{
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.45;
+}
+@media(max-width:700px){
+  .checkout-section .checkout-head,
+  .checkout-section .panel.checkout-panel{border-radius:20px!important}
+  .checkout-section .panel.checkout-panel{padding:18px!important;margin-bottom:14px!important}
+  .checkout-section .checkout-head h1{line-height:1.12!important;overflow-wrap:anywhere}
+  .checkout-section .checkout-fields label{line-height:1.4}
+  .checkout-section .checkout-total{min-width:0;overflow-wrap:anywhere}
+  .checkout-section .checkout-total strong{text-align:right}
+  .checkout-section .step-actions{gap:10px}
+  .checkout-section .step-actions .btn{min-height:50px}
+}
