@@ -28,11 +28,12 @@ async function sendCapi(admin:any,body:any){
   let order:any=null;
   if(eventName==="Purchase"){
     const {data:found,error:orderError}=await admin.from("orders")
-      .select("id,total,event_id,customer_id,fbp,fbc,landing_page,created_at")
+      .select("id,total,event_id,customer_id,fbp,fbc,landing_page,created_at,delivery_type,payment_verified")
       .eq("id",orderId).maybeSingle();
     if(orderError)return json({status:"order_lookup_error",error:orderError.message},500);
     if(!found)return json({status:"purchase_order_not_found"},404);
     if(String(found.event_id||"")!==eventId)return json({status:"purchase_event_mismatch"},409);
+    if(found.delivery_type==="interior"&&found.payment_verified!==true)return json({status:"interior_payment_not_verified"},409);
     order=found;
 
     const [{data:customer,error:customerError},{data:items,error:itemsError}]=await Promise.all([
