@@ -141,3 +141,6 @@ body:has(.checkout-section) .checkout-order-sticky strong{color:#fff!important}
  body:has(.checkout-section) .checkout-section{padding-bottom:12px!important}
  body:has(.checkout-section) .checkout-order-sticky{bottom:8px!important}
 }
+
+/* El resumen negro fijo fue retirado del JSX: anular cualquier estilo residual. */
+body:has(.checkout-section) .checkout-order-sticky{display:none!important}
