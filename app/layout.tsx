@@ -9,6 +9,7 @@ import "./storefront-compact.css";
 import "./nova-style.css";
 import "./product-page-polish.css";
 import "./checkout-copy-fix.css";
+import "./checkout-layout-stability.css";
 import "./admin-products-fix.css";
 import "./admin-professional.css";
 import "./cart-professional.css";
