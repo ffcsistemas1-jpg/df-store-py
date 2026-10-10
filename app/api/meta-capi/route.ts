@@ -41,8 +41,9 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // Publishable/anon keys belong in apikey, not Authorization: Bearer.
+        // The Edge Function validates the publishable key through withSupabase.
         apikey: publishableKey,
-        Authorization: `Bearer ${publishableKey}`,
       },
       body: JSON.stringify(forwardBody),
       cache: "no-store",
