@@ -23,8 +23,7 @@ function getCategoryProduct(products:any[], source:string){
 }
 
 export default async function Home(){
- const ps=await getProducts();
- const promos=await getPromotions();
+ const [ps,promos]=await Promise.all([getProducts(),getPromotions()]);
  const categoryCards=categoryOrder.map(category=>{
   const meta=categoryMeta[category];
   return {category,...meta,product:getCategoryProduct(ps,meta.source)};
