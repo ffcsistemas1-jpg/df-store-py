@@ -14,11 +14,13 @@ export default async function Admin(){
   if(!isAdmin)return <section><small>DF STORE PY</small><h1>Acceso denegado</h1><p>Tu cuenta ({user.email}) no tiene permisos de administrador.</p></section>;
   const [{count:pc},{data:orders},{data:products},{data:pending}]=await Promise.all([
     s.from("products").select("id",{count:"exact",head:true}).eq("active",true),
-    s.from("orders").select("total").eq("is_test",false).neq("status","cancelado"),
+    s.from("orders").select("total,status,delivery_type,payment_verified").eq("is_test",false).in("status",["confirmado","preparando","enviado","entregado"]),
     s.from("products").select("stock").eq("active",true),
     s.from("orders").select("id").eq("is_test",false).neq("payment_method","Pago al recibir").eq("payment_verified",false).neq("status","cancelado")
   ]);
-  const sales=(orders||[]).reduce((n:any,o:any)=>n+Number(o.total||0),0);
+  const confirmedSales=(orders||[]).filter((o:any)=>o.delivery_type!=="interior"||o.payment_verified);
+  const salesCount=confirmedSales.length;
+  const sales=confirmedSales.reduce((n:any,o:any)=>n+Number(o.total||0),0);
   const low=(products||[]).filter((p:any)=>Number(p.stock)<=5).length;
   return <section>
     <div className="title">
@@ -28,7 +30,7 @@ export default async function Admin(){
 
     <div className="adminstats">
       <div><b>Productos activos</b><strong>{pc||0}</strong></div>
-      <div><b>Ventas</b><strong>₲ {sales.toLocaleString("es-PY")}</strong></div>
+      <div><b>Ventas confirmadas</b><strong>{salesCount} pedidos</strong><span>₲ {sales.toLocaleString("es-PY")}</span></div>
       <div><b>Stock bajo</b><strong>{low}</strong></div>
       <div><b>Pagos pendientes</b><strong>{pending?.length||0}</strong></div>
     </div>
