@@ -33,3 +33,7 @@
 
 /* Compact delivery location */
 .location-box{background:#fffafc;border:1px solid #eadfe0;border-radius:14px;padding:14px 16px;margin:4px 0 14px}.location-copy{display:flex;flex-direction:column;gap:3px}.location-copy b{font-size:16px}.location-copy span{color:#71686a;font-size:13px;line-height:1.35}.location-success{color:#219653!important;font-size:12px!important;letter-spacing:0!important;font-weight:800!important}.location-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.location-btn{border:0;border-radius:10px;background:#98234d;color:#fff;padding:10px 13px;font-weight:800;cursor:pointer;flex:1;min-width:190px}.location-btn.secondary{background:#fff;color:#98234d;border:1px solid #d8cdcf}.location-success-btn{background:#eef9f1;color:#19733d;border:1px solid #b9e0c5}.location-success-btn:hover{background:#e4f5e8}
+
+/* Admin mobile layout: keep the dashboard compact and content clear of bottom navigation. */
+.admin-quick-add{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:24px}.admin-quick-add h2{margin:0 0 8px}.admin-quick-add p{margin:0}.admin-mobile-bottom-nav{z-index:50}.admin-content{padding-bottom:110px}
+@media(max-width:900px){.admin-content{padding-bottom:120px}.admin-quick-add{align-items:flex-start;flex-direction:column}.admin-quick-add .btn{margin-top:0}}
