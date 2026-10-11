@@ -161,12 +161,13 @@ export default function Checkout() {
 
   useEffect(() => {
     if (!draftReady.current) return;
-    if (!form.full_name.trim() && !form.whatsapp.trim() && !form.email.trim() && !form.address.trim()) return;
+    // Persistí también los checkouts recién abiertos, aunque aún no hayan
+    // escrito nombre/teléfono. Esto permite detectar abandonos reales en el admin.
     const timer = window.setTimeout(() => {
       void saveCheckoutDraft();
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [form]);
+  }, [form, restoredDraft]);
 
   useEffect(() => {
     const s = createClient();
