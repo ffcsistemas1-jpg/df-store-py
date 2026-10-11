@@ -57,8 +57,8 @@ export async function POST(req: Request) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // La clave publicable se envía en apikey; no es un JWT de usuario.
         apikey: publishableKey,
-        Authorization: `Bearer ${publishableKey}`,
       },
       body: JSON.stringify({
         action: "capi",
