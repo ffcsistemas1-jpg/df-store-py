@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {redirect} from "next/navigation";
-import {AdminProductForm} from "./product-form";
 import {createClient} from "../../lib/supabase/server";
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
@@ -35,10 +34,9 @@ export default async function Admin(){
       <div><b>Pagos pendientes</b><strong>{pending?.length||0}</strong></div>
     </div>
 
-    <div className="panel">
-      <h2>Nuevo producto</h2>
-      <p className="muted">Agregá una foto y, si corresponde, un video. El sistema los sube automáticamente.</p>
-      <AdminProductForm/>
+    <div className="panel admin-quick-add">
+      <div><h2>Catálogo e inventario</h2><p className="muted">Administrá tus productos, precios, stock, fotos y videos desde una pantalla dedicada.</p></div>
+      <Link className="btn" href="/admin/productos">Gestionar productos</Link>
     </div>
 
     <div className="adminlinks">
