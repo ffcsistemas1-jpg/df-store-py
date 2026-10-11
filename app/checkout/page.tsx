@@ -156,6 +156,8 @@ export default function Checkout() {
         }
       } catch {}
       draftReady.current = true;
+      // Dispará el efecto de guardado también cuando todavía no hay datos de contacto.
+      setForm(x => ({ ...x }));
     })();
   }, []);
 
