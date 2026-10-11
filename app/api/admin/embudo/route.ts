@@ -19,17 +19,19 @@ const uniq=(rows:any[])=>new Set((rows||[]).map(r=>r.session).filter(Boolean)).s
 export async function GET(){
   const {s,response}=await adminClient();
   if(!s)return response!;
-  const [visits,views,carts,checkouts,orders,delivered,abandoned,settings]=await Promise.all([
+  const abandonedCutoff=new Date(Date.now()-30*60*1000).toISOString();
+  const [visits,views,carts,checkouts,orders,delivered,abandonedCount,abandoned,settings]=await Promise.all([
     s.from("analytics_events").select("session").eq("type","visit"),
     s.from("analytics_events").select("session").eq("type","product_view"),
     s.from("cart_items").select("session"),
     s.from("checkout_drafts").select("session"),
     s.from("orders").select("id",{count:"exact",head:true}).eq("is_test",false).neq("status","cancelado"),
     s.from("orders").select("id",{count:"exact",head:true}).eq("is_test",false).eq("status","entregado"),
-    s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").is("completed_at",null).not("whatsapp","is",null).neq("whatsapp","").order("updated_at",{ascending:false}).limit(50),
+    s.from("checkout_drafts").select("session",{count:"exact",head:true}).is("completed_at",null).lt("updated_at",abandonedCutoff),
+    s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").is("completed_at",null).order("updated_at",{ascending:false}).limit(50),
     s.from("store_settings").select("whatsapp,abandoned_checkout_message").eq("id",1).maybeSingle()
   ]);
-  const firstError=[visits,views,carts,checkouts,orders,delivered,abandoned,settings].find(r=>r.error);
+  const firstError=[visits,views,carts,checkouts,orders,delivered,abandonedCount,abandoned,settings].find(r=>r.error);
   if(firstError?.error)return NextResponse.json({error:firstError.error.message},{status:500});
   return NextResponse.json({
     stages:[
@@ -37,6 +39,7 @@ export async function GET(){
       {label:"Productos vistos",value:uniq(views.data||[])},
       {label:"Carritos",value:uniq(carts.data||[])},
       {label:"Checkout iniciado",value:uniq(checkouts.data||[])},
+      {label:"Abandonados (+30 min)",value:abandonedCount.count||0},
       {label:"Pedidos",value:orders.count||0},
       {label:"Entregados",value:delivered.count||0}
     ],
