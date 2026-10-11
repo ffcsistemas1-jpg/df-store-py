@@ -19,7 +19,8 @@ import "./finance-meta-calendar.css";
 import { CartProvider,Header,WhatsAppButton,TopBanner,ServiceWorkerRegister,SiteFooter,MobileCustomerNav } from "./ui";
 import MetaPixelRuntime from "./meta-pixel-runtime";
 import PaymentDeliveryFix from "./checkout/payment-delivery-fix";
+import Clarity from "./clarity";
 
 export const metadata:Metadata={metadataBase:new URL(SITE_URL),title:"DF Store PY | Tienda online en Paraguay",description:SITE_DESCRIPTION,openGraph:{type:"website",siteName:"DF Store PY",locale:"es_PY",title:"DF Store PY | Tienda online en Paraguay",description:SITE_DESCRIPTION},manifest:"/manifest.webmanifest",appleWebApp:{capable:true,statusBarStyle:"default",title:"DF Store PY"},icons:{icon:"/icons/icon-192.png",apple:"/icons/icon-192.png"}};
 export const viewport:Viewport={themeColor:"#98234d"};
-export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="es"><body><a className="skip-link" href="#contenido-principal">Saltar al contenido principal</a><MetaPixelRuntime/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main id="contenido-principal" tabIndex={-1}>{children}</main><PaymentDeliveryFix/><WhatsAppButton/><MobileCustomerNav/><SiteFooter/></CartProvider></body></html>}
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="es"><body><a className="skip-link" href="#contenido-principal">Saltar al contenido principal</a><MetaPixelRuntime/><ServiceWorkerRegister/><CartProvider><TopBanner/><Header/><main id="contenido-principal" tabIndex={-1}>{children}</main><PaymentDeliveryFix/><WhatsAppButton/><MobileCustomerNav/><SiteFooter/></CartProvider><Clarity/></body></html>}
