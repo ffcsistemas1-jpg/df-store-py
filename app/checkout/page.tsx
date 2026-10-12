@@ -125,13 +125,9 @@ export default function Checkout() {
       maps_url: (patch.maps_url ?? form.maps_url) || null,
       note: (patch.note ?? form.note) || null,
     };
-    // No crear registros vacíos solo por abrir el checkout. Guardar cuando
-    // la persona ya ingresó algún dato que permita reconocer un borrador real.
-    const hasEnteredData = Boolean(
-      draft.full_name || draft.whatsapp || draft.email ||
-      draft.department || draft.city || draft.address || draft.cedula
-    );
-    if (!hasEnteredData) return;
+    // El embudo de recuperación solo debe guardar clientes con un celular
+    // paraguayo válido. No guardar visitas ni borradores sin WhatsApp válido.
+    if (!isValidPyWhatsapp(draft.whatsapp || "")) return;
     const { error } = await createClient().rpc("save_checkout_draft", {
       p_session: session,
       p_draft: draft,
@@ -163,15 +159,14 @@ export default function Checkout() {
         }
       } catch {}
       draftReady.current = true;
-      // Dispará el efecto de guardado también cuando todavía no hay datos de contacto.
+      // El efecto solo guardará si el borrador restaurado contiene WhatsApp válido.
       setForm(x => ({ ...x }));
     })();
   }, []);
 
   useEffect(() => {
     if (!draftReady.current) return;
-    // Persistí también los checkouts recién abiertos, aunque aún no hayan
-    // escrito nombre/teléfono. Esto permite detectar abandonos reales en el admin.
+    // El guardado queda bloqueado hasta que exista un WhatsApp paraguayo válido.
     const timer = window.setTimeout(() => {
       void saveCheckoutDraft();
     }, 250);
