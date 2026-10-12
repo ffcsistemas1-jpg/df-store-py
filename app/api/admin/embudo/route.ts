@@ -1,6 +1,6 @@
 import {NextResponse} from "next/server";
 import {createClient} from "../../../../lib/supabase/server";
-import {normalizePyWhatsapp} from "../../../../lib/phone-py";
+import {normalizePyWhatsapp, isValidPyWhatsapp} from "../../../../lib/phone-py";
 
 const CONTACT_WHATSAPP = "595974719210";
 const DEFAULT_MESSAGE = "¡Hola, {nombre}! 😊 ¿Cómo estás?\nNotamos que casi terminaste tu compra en DF Store PY. 🛍️\nSi tuviste algún inconveniente o necesitás ayuda para finalizar el pedido, escribinos. ¡Estamos para ayudarte! 💕";
@@ -24,26 +24,29 @@ export async function GET(){
     s.from("analytics_events").select("session").eq("type","visit"),
     s.from("analytics_events").select("session").eq("type","product_view"),
     s.from("cart_items").select("session"),
-    s.from("checkout_drafts").select("session"),
+    s.from("checkout_drafts").select("session,whatsapp").not("whatsapp","is",null),
     s.from("orders").select("id",{count:"exact",head:true}).eq("is_test",false).neq("status","cancelado"),
     s.from("orders").select("id",{count:"exact",head:true}).eq("is_test",false).eq("status","entregado"),
-    s.from("checkout_drafts").select("session",{count:"exact",head:true}).is("completed_at",null).lt("updated_at",abandonedCutoff).or("full_name.not.is.null,whatsapp.not.is.null,email.not.is.null"),
-    s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").is("completed_at",null).or("full_name.not.is.null,whatsapp.not.is.null,email.not.is.null").order("updated_at",{ascending:false}).limit(50),
+    s.from("checkout_drafts").select("session,whatsapp,updated_at").not("whatsapp","is",null).is("completed_at",null).lt("updated_at",abandonedCutoff),
+    s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").not("whatsapp","is",null).is("completed_at",null).order("updated_at",{ascending:false}).limit(100),
     s.from("store_settings").select("whatsapp,abandoned_checkout_message").eq("id",1).maybeSingle()
   ]);
   const firstError=[visits,views,carts,checkouts,orders,delivered,abandonedCount,abandoned,settings].find(r=>r.error);
   if(firstError?.error)return NextResponse.json({error:firstError.error.message},{status:500});
+  const validCheckoutRows=(checkouts.data||[]).filter((r:any)=>isValidPyWhatsapp(r.whatsapp||""));
+  const validAbandonedRows=(abandonedCount.data||[]).filter((r:any)=>isValidPyWhatsapp(r.whatsapp||""));
+  const validDrafts=(abandoned.data||[]).filter((r:any)=>isValidPyWhatsapp(r.whatsapp||"")).slice(0,50);
   return NextResponse.json({
     stages:[
       {label:"Visitas",value:uniq(visits.data||[])},
       {label:"Productos vistos",value:uniq(views.data||[])},
       {label:"Carritos",value:uniq(carts.data||[])},
-      {label:"Checkout iniciado",value:uniq(checkouts.data||[])},
-      {label:"Abandonados (+30 min)",value:abandonedCount.count||0},
+      {label:"Checkout con WhatsApp",value:uniq(validCheckoutRows)},
+      {label:"Abandonados (+30 min, con WhatsApp)",value:uniq(validAbandonedRows)},
       {label:"Pedidos",value:orders.count||0},
       {label:"Entregados",value:delivered.count||0}
     ],
-    drafts:abandoned.data||[],
+    drafts:validDrafts,
     settings:{
       whatsapp:normalizePyWhatsapp(settings.data?.whatsapp||"")||CONTACT_WHATSAPP,
       abandoned_checkout_message:settings.data?.abandoned_checkout_message||DEFAULT_MESSAGE
