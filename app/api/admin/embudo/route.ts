@@ -19,15 +19,14 @@ const uniq=(rows:any[])=>new Set((rows||[]).map(r=>r.session).filter(Boolean)).s
 export async function GET(){
   const {s,response}=await adminClient();
   if(!s)return response!;
-  const abandonedCutoff=new Date(Date.now()-30*60*1000).toISOString();
   const [visits,views,carts,checkouts,orders,delivered,abandonedCount,abandoned,settings]=await Promise.all([
     s.from("analytics_events").select("session").eq("type","visit"),
     s.from("analytics_events").select("session").eq("type","product_view"),
     s.from("cart_items").select("session"),
-    s.from("checkout_drafts").select("session,whatsapp").not("whatsapp","is",null),
+    s.from("checkout_drafts").select("session,whatsapp").not("whatsapp","is",null).is("completed_at",null),
     s.from("orders").select("id",{count:"exact",head:true}).eq("is_test",false).neq("status","cancelado"),
     s.from("orders").select("id",{count:"exact",head:true}).eq("is_test",false).eq("status","entregado"),
-    s.from("checkout_drafts").select("session,whatsapp,updated_at").not("whatsapp","is",null).is("completed_at",null).lt("updated_at",abandonedCutoff),
+    s.from("checkout_drafts").select("session,whatsapp").not("whatsapp","is",null).is("completed_at",null),
     s.from("checkout_drafts").select("session,full_name,whatsapp,email,department,city,neighborhood,address,delivery_type,payment_method,updated_at").not("whatsapp","is",null).is("completed_at",null).order("updated_at",{ascending:false}).limit(100),
     s.from("store_settings").select("whatsapp,abandoned_checkout_message").eq("id",1).maybeSingle()
   ]);
@@ -42,7 +41,7 @@ export async function GET(){
       {label:"Productos vistos",value:uniq(views.data||[])},
       {label:"Carritos",value:uniq(carts.data||[])},
       {label:"Checkout con WhatsApp",value:uniq(validCheckoutRows)},
-      {label:"Abandonados (+30 min, con WhatsApp)",value:uniq(validAbandonedRows)},
+      {label:"Checkouts incompletos con WhatsApp",value:uniq(validAbandonedRows)},
       {label:"Pedidos",value:orders.count||0},
       {label:"Entregados",value:delivered.count||0}
     ],
